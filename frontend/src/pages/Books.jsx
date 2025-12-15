@@ -1,9 +1,11 @@
 import { useEffect, useState } from 'react';
 import { Search, Filter, BookOpen, Plus } from 'lucide-react';
+import { toast } from 'react-toastify';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import Loading from '../components/common/Loading';
+import AddBookModal from '../components/common/AddBookModal';
 import useBookStore from '../stores/bookStore';
 import useAuthStore from '../stores/authStore';
 import bookService from '../services/bookService';
@@ -26,6 +28,7 @@ const Books = () => {
     } = useBookStore();
 
     const [localSearch, setLocalSearch] = useState(searchQuery);
+    const [isAddModalOpen, setIsAddModalOpen] = useState(false);
 
     useEffect(() => {
         fetchBooks();
@@ -55,6 +58,26 @@ const Books = () => {
         setPage(1);
     };
 
+    const handleAddBook = async (bookData) => {
+        try {
+            await bookService.createBook(bookData);
+            toast.success('Book added successfully!', {
+                position: "top-right",
+                autoClose: 3000,
+            });
+            // Refresh the book list
+            fetchBooks();
+        } catch (error) {
+            console.error('Error adding book:', error);
+            const errorMessage = error.response?.data?.detail || 'Failed to add book. Please try again.';
+            toast.error(errorMessage, {
+                position: "top-right",
+                autoClose: 5000,
+            });
+            throw error; // Re-throw to let modal handle it
+        }
+    };
+
     const isLibrarian = user?.role === 'admin' || user?.role === 'librarian';
 
     if (isLoading && books.length === 0) {
@@ -73,11 +96,22 @@ const Books = () => {
                 </div>
 
                 {isLibrarian && (
-                    <Button variant="primary" icon={Plus}>
+                    <Button
+                        variant="primary"
+                        icon={Plus}
+                        onClick={() => setIsAddModalOpen(true)}
+                    >
                         Add New Book
                     </Button>
                 )}
             </div>
+
+            {/* Add Book Modal */}
+            <AddBookModal
+                isOpen={isAddModalOpen}
+                onClose={() => setIsAddModalOpen(false)}
+                onBookAdded={handleAddBook}
+            />
 
             {/* Search and Filters */}
             <Card className="mb-8">
@@ -121,48 +155,62 @@ const Books = () => {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-                        {books.map((book, index) => (
-                            <Card
-                                key={book.id}
-                                hover
-                                className={`flex flex-col animate-fade-in`}
-                                style={{ animationDelay: `${index * 50}ms` }}
-                            >
-                                {/* Book Cover Placeholder */}
-                                <div className="w-full h-48 bg-gradient-to-br from-primary-900 to-accent-900 rounded-xl mb-4 flex items-center justify-center">
-                                    <BookOpen className="text-white/30" size={48} />
-                                </div>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
+                        {books.map((book, index) => {
+                            const initials = book.title
+                                .split(' ')
+                                .slice(0, 2)
+                                .map(word => word[0])
+                                .join('')
+                                .toUpperCase();
 
-                                {/* Book Info */}
-                                <h3 className="font-display font-bold text-white mb-2 line-clamp-2">
-                                    {book.title}
-                                </h3>
-                                <p className="text-sm text-gray-400 mb-3">{book.author}</p>
+                            return (
+                                <Card
+                                    key={book.id}
+                                    hover
+                                    className={`flex flex-col p-4 animate-fade-in`}
+                                    style={{ animationDelay: `${index * 50}ms` }}
+                                >
+                                    {/* Book Cover with Initials */}
+                                    <div className="w-full h-40 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg mb-3 flex items-center justify-center">
+                                        <span className="text-4xl font-display font-bold text-white">
+                                            {initials}
+                                        </span>
+                                    </div>
 
-                                {book.category && (
-                                    <span className="badge-primary mb-3">{book.category}</span>
-                                )}
+                                    {/* Book Info */}
+                                    <h3 className="font-display font-bold text-gray-900 mb-1 line-clamp-2 text-base">
+                                        {book.title}
+                                    </h3>
+                                    <p className="text-sm text-gray-600 mb-2">{book.author}</p>
 
-                                <p className="text-xs text-gray-400 mb-4 line-clamp-2 flex-1">
-                                    {book.description || 'No description available'}
-                                </p>
+                                    {book.category && (
+                                        <span className="badge-primary mb-2 text-xs">{book.category}</span>
+                                    )}
 
-                                {/* Actions */}
-                                <div className="flex items-center justify-between pt-4 border-t border-white/10">
-                                    <span className={`text-sm ${book.available_copies > 0 ? 'text-green-400' : 'text-red-400'}`}>
-                                        {book.available_copies > 0 ? `${book.available_copies} available` : 'Not available'}
-                                    </span>
-                                    <Button
-                                        variant="ghost"
-                                        size="sm"
-                                        disabled={book.available_copies === 0}
-                                    >
-                                        Borrow
-                                    </Button>
-                                </div>
-                            </Card>
-                        ))}
+                                    <p className="text-xs text-gray-500 mb-3 line-clamp-2 flex-1">
+                                        {book.description || 'No description available'}
+                                    </p>
+
+                                    {/* Actions */}
+                                    <div className="flex items-center justify-between pt-3 border-t border-gray-200">
+                                        <span className={`text-sm font-medium ${book.available_copies > 0 ? 'text-green-600' : 'text-red-600'}`}>
+                                            {book.available_copies} / {book.total_copies} available
+                                        </span>
+                                        {user?.role !== 'admin' && user?.role !== 'librarian' && (
+                                            <Button
+                                                variant="ghost"
+                                                size="sm"
+                                                disabled={book.available_copies === 0}
+                                                className="text-sm px-3 py-1"
+                                            >
+                                                Borrow
+                                            </Button>
+                                        )}
+                                    </div>
+                                </Card>
+                            );
+                        })}
                     </div>
 
                     {/* Pagination */}

@@ -42,14 +42,18 @@ const Navbar = () => {
                                     <Library size={18} />
                                     <span>Books</span>
                                 </Link>
-                                <Link to="/my-loans" className="nav-link">
-                                    <BookMarked size={18} />
-                                    <span>My Loans</span>
-                                </Link>
-                                <Link to="/recommendations" className="nav-link">
-                                    <Sparkles size={18} />
-                                    <span>AI Recommendations</span>
-                                </Link>
+                                {user?.role !== 'admin' && user?.role !== 'librarian' && (
+                                    <>
+                                        <Link to="/my-loans" className="nav-link">
+                                            <BookMarked size={18} />
+                                            <span>My Loans</span>
+                                        </Link>
+                                        <Link to="/recommendations" className="nav-link">
+                                            <Sparkles size={18} />
+                                            <span>AI Recommendations</span>
+                                        </Link>
+                                    </>
+                                )}
                             </>
                         )}
                     </div>
@@ -114,22 +118,26 @@ const Navbar = () => {
                                 <Library size={18} />
                                 <span>Books</span>
                             </Link>
-                            <Link
-                                to="/my-loans"
-                                className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 rounded-xl transition-colors"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                <BookMarked size={18} />
-                                <span>My Loans</span>
-                            </Link>
-                            <Link
-                                to="/recommendations"
-                                className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 rounded-xl transition-colors"
-                                onClick={() => setIsMobileMenuOpen(false)}
-                            >
-                                <Sparkles size={18} />
-                                <span>AI Recommendations</span>
-                            </Link>
+                            {user?.role !== 'admin' && user?.role !== 'librarian' && (
+                                <>
+                                    <Link
+                                        to="/my-loans"
+                                        className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 rounded-xl transition-colors"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                        <BookMarked size={18} />
+                                        <span>My Loans</span>
+                                    </Link>
+                                    <Link
+                                        to="/recommendations"
+                                        className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 rounded-xl transition-colors"
+                                        onClick={() => setIsMobileMenuOpen(false)}
+                                    >
+                                        <Sparkles size={18} />
+                                        <span>AI Recommendations</span>
+                                    </Link>
+                                </>
+                            )}
                         </div>
                     </div>
                 )}
