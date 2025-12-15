@@ -1,12 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Search, Filter, BookOpen, Plus } from 'lucide-react';
-import Card from '../../components/common/Card';
-import Input from '../../components/common/Input';
-import Button from '../../components/common/Button';
-import Loading from '../../components/common/Loading';
-import useBookStore from '../../stores/bookStore';
-import useAuthStore from '../../stores/authStore';
-import bookService from '../../services/bookService';
+import Card from '../components/common/Card';
+import Input from '../components/common/Input';
+import Button from '../components/common/Button';
+import Loading from '../components/common/Loading';
+import useBookStore from '../stores/bookStore';
+import useAuthStore from '../stores/authStore';
+import bookService from '../services/bookService';
 
 const Books = () => {
     const { user } = useAuthStore();

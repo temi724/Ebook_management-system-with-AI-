@@ -206,5 +206,15 @@ Format your response as a list with book titles and reasons."""
         )
 
 
-# Singleton instance
-recommendation_service = RecommendationService()
+# Singleton instance - lazy initialized
+_recommendation_service = None
+
+def get_recommendation_service() -> RecommendationService:
+    """Get or create the recommendation service singleton"""
+    global _recommendation_service
+    if _recommendation_service is None:
+        _recommendation_service = RecommendationService()
+    return _recommendation_service
+
+# For backwards compatibility
+recommendation_service = None  # Will be initialized on first use

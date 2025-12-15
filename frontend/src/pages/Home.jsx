@@ -1,6 +1,6 @@
 import { Link } from 'react-router-dom';
 import { BookOpen, Sparkles, TrendingUp, Shield } from 'lucide-react';
-import Button from '../../components/common/Button';
+import Button from '../components/common/Button';
 
 const Home = () => {
     return (

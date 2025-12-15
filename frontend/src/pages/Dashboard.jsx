@@ -1,13 +1,13 @@
 import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { BookOpen, BookMarked, TrendingUp, Sparkles } from 'lucide-react';
-import Card from '../../components/common/Card';
-import Loading from '../../components/common/Loading';
-import useAuthStore from '../../stores/authStore';
-import useLoanStore from '../../stores/loanStore';
-import useRecommendationStore from '../../stores/recommendationStore';
-import loanService from '../../services/loanService';
-import recommendationService from '../../services/recommendationService';
+import Card from '../components/common/Card';
+import Loading from '../components/common/Loading';
+import useAuthStore from '../stores/authStore';
+import useLoanStore from '../stores/loanStore';
+import useRecommendationStore from '../stores/recommendationStore';
+import loanService from '../services/loanService';
+import recommendationService from '../services/recommendationService';
 
 const Dashboard = () => {
     const { user } = useAuthStore();

@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from app.db.base import get_db
 from app.schemas.recommendation import RecommendationRequest, RecommendationResponse
-from app.services.recommendation_service import recommendation_service
+from app.services.recommendation_service import get_recommendation_service
 from app.api.dependencies.auth import get_current_user
 from typing import Optional
 
@@ -22,7 +22,7 @@ def get_recommendations_by_query(
             detail="Query is required"
         )
     
-    return recommendation_service.get_recommendations_by_query(
+    return get_recommendation_service().get_recommendations_by_query(
         db, request.query, request.limit
     )
 
@@ -34,7 +34,7 @@ def get_personalized_recommendations(
     current_user = Depends(get_current_user)
 ):
     """Get personalized recommendations based on reading history"""
-    return recommendation_service.get_personalized_recommendations(
+    return get_recommendation_service().get_personalized_recommendations(
         db, current_user.id, limit
     )
 
@@ -46,7 +46,7 @@ def initialize_vector_store(
 ):
     """Initialize or refresh the vector store with current books"""
     try:
-        recommendation_service.initialize_vector_store(db)
+        get_recommendation_service().initialize_vector_store(db)
         return {"message": "Vector store initialized successfully"}
     except Exception as e:
         raise HTTPException(

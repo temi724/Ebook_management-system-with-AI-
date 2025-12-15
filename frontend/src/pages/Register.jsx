@@ -1,11 +1,11 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User as UserIcon, BookOpen } from 'lucide-react';
-import Input from '../../components/common/Input';
-import Button from '../../components/common/Button';
-import Alert from '../../components/common/Alert';
-import useAuthStore from '../../stores/authStore';
-import authService from '../../services/authService';
+import { toast } from 'react-toastify';
+import Input from '../components/common/Input';
+import Button from '../components/common/Button';
+import useAuthStore from '../stores/authStore';
+import authService from '../services/authService';
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -16,7 +16,6 @@ const Register = () => {
         confirmPassword: '',
         role: 'student',
     });
-    const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
@@ -27,21 +26,27 @@ const Register = () => {
             ...formData,
             [e.target.name]: e.target.value,
         });
-        setError('');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
 
         // Validation
         if (formData.password !== formData.confirmPassword) {
-            setError('Passwords do not match');
+            toast.error('Passwords do not match', {
+                position: "top-right",
+                autoClose: 8000,
+                pauseOnHover: true,
+            });
             return;
         }
 
         if (formData.password.length < 8) {
-            setError('Password must be at least 8 characters long');
+            toast.error('Password must be at least 8 characters long', {
+                position: "top-right",
+                autoClose: 8000,
+                pauseOnHover: true,
+            });
             return;
         }
 
@@ -61,7 +66,13 @@ const Register = () => {
             login(userData, tokenData.access_token);
             navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.detail || 'Registration failed. Please try again.');
+            const errorMessage = err.response?.data?.detail || 'Registration failed. Please try again.';
+            toast.error(errorMessage, {
+                position: "top-right",
+                autoClose: 8000,
+                pauseOnHover: true,
+                closeOnClick: true,
+            });
         } finally {
             setIsLoading(false);
         }
@@ -85,11 +96,6 @@ const Register = () => {
 
                 {/* Form */}
                 <div className="card animate-scale-in">
-                    {error && (
-                        <div className="mb-6">
-                            <Alert type="error" message={error} onClose={() => setError('')} />
-                        </div>
-                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-5">
                         <Input

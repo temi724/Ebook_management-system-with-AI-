@@ -1,18 +1,17 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User as UserIcon, BookOpen } from 'lucide-react';
-import Input from '../../components/common/Input';
-import Button from '../../components/common/Button';
-import Alert from '../../components/common/Alert';
-import useAuthStore from '../../stores/authStore';
-import authService from '../../services/authService';
+import { toast } from 'react-toastify';
+import Input from '../components/common/Input';
+import Button from '../components/common/Button';
+import useAuthStore from '../stores/authStore';
+import authService from '../services/authService';
 
 const Login = () => {
     const [formData, setFormData] = useState({
         username: '',
         password: '',
     });
-    const [error, setError] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
@@ -23,25 +22,49 @@ const Login = () => {
             ...formData,
             [e.target.name]: e.target.value,
         });
-        setError('');
     };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
-        setError('');
+        e.stopPropagation();
+
+        console.log('Login form submitted');
         setIsLoading(true);
 
         try {
+            console.log('Attempting login with username:', formData.username);
             const tokenData = await authService.login(formData);
-            const userData = await authService.getCurrentUser();
+            console.log('Login successful, token received');
 
-            login(userData, tokenData.access_token);
+            // IMPORTANT: Save token to store BEFORE calling getCurrentUser
+            // so the axios interceptor can add it to the Authorization header
+            const tempToken = tokenData.access_token;
+            useAuthStore.getState().setToken(tempToken);
+
+            const userData = await authService.getCurrentUser();
+            console.log('User data received:', userData);
+
+            // Now properly set both user and token
+            login(userData, tempToken);
             navigate('/dashboard');
         } catch (err) {
-            setError(err.response?.data?.detail || 'Login failed. Please try again.');
+            console.error('Login error:', err);
+            console.error('Error response:', err.response);
+
+            const errorMessage = err.response?.data?.detail || err.message || 'Login failed. Please check your credentials and try again.';
+            console.log('Showing error toast:', errorMessage);
+
+            toast.error(errorMessage, {
+                position: "top-right",
+                autoClose: 8000,
+                pauseOnHover: true,
+                closeOnClick: true,
+            });
         } finally {
             setIsLoading(false);
         }
+
+        return false; // Prevent any default form submission
     };
 
     return (
@@ -62,11 +85,6 @@ const Login = () => {
 
                 {/* Form */}
                 <div className="card animate-scale-in">
-                    {error && (
-                        <div className="mb-6">
-                            <Alert type="error" message={error} onClose={() => setError('')} />
-                        </div>
-                    )}
 
                     <form onSubmit={handleSubmit} className="space-y-6">
                         <Input

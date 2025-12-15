@@ -7,6 +7,7 @@ from app.core.security import create_access_token
 from app.db.base import get_db
 from app.schemas.user import Token, UserCreate, User
 from app.services.user_service import UserService
+from app.api.dependencies.auth import get_current_user
 
 router = APIRouter()
 
@@ -69,5 +70,4 @@ def get_current_user_info(
     current_user = Depends(get_current_user)
 ):
     """Get current user information"""
-    from app.api.dependencies.auth import get_current_user
     return current_user
