@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, LogOut, User, Menu, X, Home, Library, BookMarked, Sparkles } from 'lucide-react';
+import { BookOpen, LogOut, User, Menu, X, Home, Library, BookMarked, Sparkles, ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 import useAuthStore from '../../stores/authStore';
 
@@ -42,6 +42,12 @@ const Navbar = () => {
                                     <Library size={18} />
                                     <span>Books</span>
                                 </Link>
+                                {(user?.role === 'admin' || user?.role === 'librarian') && (
+                                    <Link to="/admin/loans" className="nav-link">
+                                        <ClipboardList size={18} />
+                                        <span>Loan Requests</span>
+                                    </Link>
+                                )}
                                 {user?.role !== 'admin' && user?.role !== 'librarian' && (
                                     <>
                                         <Link to="/my-loans" className="nav-link">
@@ -118,6 +124,16 @@ const Navbar = () => {
                                 <Library size={18} />
                                 <span>Books</span>
                             </Link>
+                            {(user?.role === 'admin' || user?.role === 'librarian') && (
+                                <Link
+                                    to="/admin/loans"
+                                    className="flex items-center gap-3 px-4 py-3 hover:bg-white/10 rounded-xl transition-colors"
+                                    onClick={() => setIsMobileMenuOpen(false)}
+                                >
+                                    <ClipboardList size={18} />
+                                    <span>Loan Requests</span>
+                                </Link>
+                            )}
                             {user?.role !== 'admin' && user?.role !== 'librarian' && (
                                 <>
                                     <Link

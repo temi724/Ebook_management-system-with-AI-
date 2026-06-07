@@ -10,6 +10,7 @@ class UserBase(BaseModel):
     username: str
     full_name: str
     role: Optional[UserRole] = UserRole.STUDENT
+    department: Optional[str] = None
 
 
 # Schema for creating a user
@@ -23,6 +24,7 @@ class UserUpdate(BaseModel):
     username: Optional[str] = None
     full_name: Optional[str] = None
     role: Optional[UserRole] = None
+    department: Optional[str] = None
     is_active: Optional[bool] = None
     password: Optional[str] = None
 

@@ -15,6 +15,7 @@ const Register = () => {
         password: '',
         confirmPassword: '',
         role: 'student',
+        department: '',
     });
     const [isLoading, setIsLoading] = useState(false);
 
@@ -144,6 +145,38 @@ const Register = () => {
                             >
                                 <option value="student">Student</option>
                                 <option value="faculty">Faculty</option>
+                            </select>
+                        </div>
+
+                        <div className="w-full">
+                            <label className="block text-sm font-medium text-gray-300 mb-2">
+                                Department
+                            </label>
+                            <select
+                                name="department"
+                                value={formData.department}
+                                onChange={handleChange}
+                                className="input-field"
+                                required
+                            >
+                                <option value="">Select your department</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Medicine & Health Sciences">Medicine &amp; Health Sciences</option>
+                                <option value="Law">Law</option>
+                                <option value="Business Administration">Business Administration</option>
+                                <option value="Economics">Economics</option>
+                                <option value="Mathematics">Mathematics</option>
+                                <option value="Physics">Physics</option>
+                                <option value="Chemistry">Chemistry</option>
+                                <option value="Biology">Biology</option>
+                                <option value="Arts & Humanities">Arts &amp; Humanities</option>
+                                <option value="Social Sciences">Social Sciences</option>
+                                <option value="Education">Education</option>
+                                <option value="Architecture">Architecture</option>
+                                <option value="Other">Other</option>
                             </select>
                         </div>
 

@@ -24,6 +24,7 @@ class Book(Base):
     pages = Column(Integer)
     rating = Column(Float, default=0.0)
     tags = Column(String(500))  # Comma-separated tags
+    department = Column(String(100), nullable=True)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     

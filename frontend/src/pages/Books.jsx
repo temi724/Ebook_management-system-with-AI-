@@ -9,6 +9,7 @@ import AddBookModal from '../components/common/AddBookModal';
 import useBookStore from '../stores/bookStore';
 import useAuthStore from '../stores/authStore';
 import bookService from '../services/bookService';
+import loanService from '../services/loanService';
 
 const Books = () => {
     const { user } = useAuthStore();
@@ -29,6 +30,7 @@ const Books = () => {
 
     const [localSearch, setLocalSearch] = useState(searchQuery);
     const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+    const [borrowingId, setBorrowingId] = useState(null);
 
     useEffect(() => {
         fetchBooks();
@@ -56,6 +58,22 @@ const Books = () => {
         e.preventDefault();
         setSearchQuery(localSearch);
         setPage(1);
+    };
+
+    const handleBorrow = async (bookId) => {
+        setBorrowingId(bookId);
+        try {
+            await loanService.requestBorrow(bookId);
+            toast.success('Borrow request submitted! Wait for admin approval.', {
+                position: 'top-right',
+                autoClose: 4000,
+            });
+        } catch (error) {
+            const msg = error.response?.data?.detail || 'Failed to submit borrow request.';
+            toast.error(msg, { position: 'top-right', autoClose: 5000 });
+        } finally {
+            setBorrowingId(null);
+        }
     };
 
     const handleAddBook = async (bookData) => {
@@ -199,12 +217,13 @@ const Books = () => {
                                         </span>
                                         {user?.role !== 'admin' && user?.role !== 'librarian' && (
                                             <Button
-                                                variant="ghost"
+                                                variant={book.available_copies > 0 ? 'primary' : 'ghost'}
                                                 size="sm"
-                                                disabled={book.available_copies === 0}
+                                                disabled={book.available_copies === 0 || borrowingId === book.id}
+                                                onClick={() => handleBorrow(book.id)}
                                                 className="text-sm px-3 py-1"
                                             >
-                                                Borrow
+                                                {borrowingId === book.id ? 'Requesting…' : book.available_copies > 0 ? 'Borrow' : 'Unavailable'}
                                             </Button>
                                         )}
                                     </div>

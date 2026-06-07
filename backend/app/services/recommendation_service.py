@@ -17,17 +17,24 @@ class RecommendationService:
     """AI-powered book recommendation service using RAG with Ollama"""
     
     def __init__(self):
-        self.embeddings = HuggingFaceEmbeddings(
-            model_name="sentence-transformers/all-MiniLM-L6-v2"
-        )
         self.vector_store = None
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500,
             chunk_overlap=50
         )
+        try:
+            self.embeddings = HuggingFaceEmbeddings(
+                model_name="sentence-transformers/all-MiniLM-L6-v2"
+            )
+        except Exception as e:
+            logger.warning(f"Could not initialize embeddings model: {e}. Recommendations will use fallback.")
+            self.embeddings = None
     
     def initialize_vector_store(self, db: Session):
         """Initialize or update vector store with book data"""
+        if not self.embeddings:
+            logger.warning("Embeddings not available, skipping vector store initialization")
+            return
         try:
             books = db.query(Book).filter(Book.is_active == True).all()
             

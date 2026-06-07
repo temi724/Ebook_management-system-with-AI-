@@ -10,6 +10,7 @@ const AddBookModal = ({ isOpen, onClose, onBookAdded }) => {
         isbn: '',
         publisher: '',
         category: '',
+        department: '',
         description: '',
         total_copies: 1,
         publication_year: new Date().getFullYear(),
@@ -37,6 +38,7 @@ const AddBookModal = ({ isOpen, onClose, onBookAdded }) => {
                 isbn: '',
                 publisher: '',
                 category: '',
+                department: '',
                 description: '',
                 total_copies: 1,
                 publication_year: new Date().getFullYear(),
@@ -111,6 +113,39 @@ const AddBookModal = ({ isOpen, onClose, onBookAdded }) => {
                             onChange={handleChange}
                             placeholder="e.g., Fiction, Science, History"
                         />
+                        <div>
+                            <label className="block text-sm font-medium text-gray-700 mb-2">
+                                Department
+                            </label>
+                            <select
+                                name="department"
+                                value={formData.department}
+                                onChange={handleChange}
+                                className="w-full px-4 py-3 bg-white border border-gray-300 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-all duration-300"
+                            >
+                                <option value="">Select department (optional)</option>
+                                <option value="Computer Science">Computer Science</option>
+                                <option value="Electrical Engineering">Electrical Engineering</option>
+                                <option value="Mechanical Engineering">Mechanical Engineering</option>
+                                <option value="Civil Engineering">Civil Engineering</option>
+                                <option value="Medicine & Health Sciences">Medicine &amp; Health Sciences</option>
+                                <option value="Law">Law</option>
+                                <option value="Business Administration">Business Administration</option>
+                                <option value="Economics">Economics</option>
+                                <option value="Mathematics">Mathematics</option>
+                                <option value="Physics">Physics</option>
+                                <option value="Chemistry">Chemistry</option>
+                                <option value="Biology">Biology</option>
+                                <option value="Arts & Humanities">Arts &amp; Humanities</option>
+                                <option value="Social Sciences">Social Sciences</option>
+                                <option value="Education">Education</option>
+                                <option value="Architecture">Architecture</option>
+                                <option value="General">General</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
                             label="Publication Year"
                             name="publication_year"
@@ -119,9 +154,6 @@ const AddBookModal = ({ isOpen, onClose, onBookAdded }) => {
                             onChange={handleChange}
                             placeholder="Enter year"
                         />
-                    </div>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <Input
                             label="Number of Copies *"
                             name="total_copies"

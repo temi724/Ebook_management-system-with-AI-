@@ -15,7 +15,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
     
     # Database Settings
-    DATABASE_URL: str = "mysql+pymysql://root:password@localhost:3306/elibrary_db"
+    DATABASE_URL: str = "mysql+pymysql://root:@localhost:3306/elibrary_db"
     
     # CORS Settings - can be comma-separated string or list
     BACKEND_CORS_ORIGINS: Union[str, List[str]] = [

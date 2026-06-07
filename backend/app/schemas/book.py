@@ -16,6 +16,7 @@ class BookBase(BaseModel):
     pages: Optional[int] = None
     total_copies: int = 1
     tags: Optional[str] = None
+    department: Optional[str] = None
 
 
 # Schema for creating a book
@@ -41,6 +42,7 @@ class BookUpdate(BaseModel):
     is_active: Optional[bool] = None
     rating: Optional[float] = None
     tags: Optional[str] = None
+    department: Optional[str] = None
 
 
 # Schema for reading a book (response)

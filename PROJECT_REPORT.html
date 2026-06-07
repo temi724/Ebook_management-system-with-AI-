@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI-Powered E-Library Management System — Technical Implementation Report</title>
+<style>
+  :root{
+    --primary:#1e3a8a; --primary-light:#3b82f6; --accent:#6d28d9;
+    --ink:#1f2937; --muted:#6b7280; --line:#e5e7eb; --bg-soft:#f8fafc;
+    --green:#047857; --amber:#b45309; --red:#b91c1c;
+  }
+  *{box-sizing:border-box;}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    color:var(--ink); line-height:1.65; margin:0; background:#fff;
+    font-size:15px;
+  }
+  .wrap{max-width:900px; margin:0 auto; padding:48px 32px;}
+  h1{font-size:30px; color:var(--primary); margin:0 0 6px; line-height:1.2;}
+  h2{font-size:22px; color:var(--primary); margin:42px 0 12px; padding-bottom:8px; border-bottom:2px solid var(--line);}
+  h3{font-size:17px; color:var(--accent); margin:26px 0 8px;}
+  h4{font-size:15px; color:var(--ink); margin:18px 0 6px;}
+  p{margin:10px 0;}
+  ul,ol{margin:10px 0; padding-left:24px;}
+  li{margin:5px 0;}
+  code{font-family:"SF Mono",Menlo,Consolas,monospace; background:var(--bg-soft); padding:1.5px 6px; border-radius:4px; font-size:13px; color:#b91c1c;}
+  pre{background:#0f172a; color:#e2e8f0; padding:16px 18px; border-radius:8px; overflow-x:auto; font-size:12.5px; line-height:1.55;}
+  pre code{background:none; color:inherit; padding:0;}
+  table{width:100%; border-collapse:collapse; margin:14px 0; font-size:13.5px;}
+  th,td{border:1px solid var(--line); padding:8px 10px; text-align:left; vertical-align:top;}
+  th{background:var(--primary); color:#fff; font-weight:600;}
+  tr:nth-child(even) td{background:var(--bg-soft);}
+  .subtitle{color:var(--muted); font-size:16px; margin:0 0 4px;}
+  .meta{color:var(--muted); font-size:13px; margin-top:18px;}
+  .cover{border-bottom:3px solid var(--primary); padding-bottom:24px; margin-bottom:8px;}
+  .badge{display:inline-block; background:var(--primary-light); color:#fff; font-size:11px; font-weight:600; padding:3px 9px; border-radius:999px; margin:2px 4px 2px 0;}
+  .callout{border-left:4px solid var(--primary-light); background:var(--bg-soft); padding:12px 16px; border-radius:0 6px 6px 0; margin:14px 0;}
+  .callout.warn{border-left-color:var(--amber); background:#fffbeb;}
+  .callout.ok{border-left-color:var(--green); background:#ecfdf5;}
+  .toc{background:var(--bg-soft); border:1px solid var(--line); border-radius:8px; padding:18px 26px;}
+  .toc ol{margin:0; padding-left:22px;}
+  .toc a{color:var(--primary); text-decoration:none;}
+  .toc a:hover{text-decoration:underline;}
+  .pill{font-size:11px; font-weight:600; padding:2px 8px; border-radius:4px;}
+  .pill.done{background:#d1fae5; color:var(--green);}
+  .pill.partial{background:#fef3c7; color:var(--amber);}
+  .pill.future{background:#e0e7ff; color:var(--accent);}
+  .fig{font-size:12px; color:var(--muted); text-align:center; margin-top:6px;}
+  .diagram{font-family:"SF Mono",Menlo,Consolas,monospace; font-size:12px; white-space:pre; background:var(--bg-soft); border:1px solid var(--line); border-radius:8px; padding:18px; overflow-x:auto; line-height:1.45;}
+  @media print{
+    .wrap{max-width:none; padding:0 12px;}
+    h2{page-break-after:avoid;}
+    pre,table,.diagram,.callout{page-break-inside:avoid;}
+    a{color:var(--ink); text-decoration:none;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===================== COVER ===================== -->
+  <div class="cover">
+    <p class="subtitle">Project Technical Report</p>
+    <h1>AI-Powered E-Library Management System</h1>
+    <p class="subtitle">A full-stack digital library platform with role-based access control,
+      a multi-stage loan workflow with QR verification, and an AI recommendation engine
+      built on a Retrieval-Augmented Generation (RAG) pipeline.</p>
+    <div style="margin-top:14px;">
+      <span class="badge">FastAPI</span>
+      <span class="badge">React 18</span>
+      <span class="badge">MySQL</span>
+      <span class="badge">SQLAlchemy</span>
+      <span class="badge">JWT Auth</span>
+      <span class="badge">Ollama / Llama 2</span>
+      <span class="badge">ChromaDB</span>
+      <span class="badge">LangChain</span>
+      <span class="badge">Tailwind CSS</span>
+    </div>
+    <p class="meta">Technical implementation documentation &middot; Backend, Frontend, Security, AI Pipeline &amp; Fallback Strategy</p>
+  </div>
+
+  <!-- ===================== TOC ===================== -->
+  <div class="toc">
+    <h3 style="margin-top:0;">Table of Contents</h3>
+    <ol>
+      <li><a href="#overview">System Overview</a></li>
+      <li><a href="#stack">Technology Stack</a></li>
+      <li><a href="#architecture">System Architecture</a></li>
+      <li><a href="#data">Data Model &amp; Database</a></li>
+      <li><a href="#auth">Authentication &amp; Security</a></li>
+      <li><a href="#api">API Design &amp; Endpoints</a></li>
+      <li><a href="#loans">The Loan Workflow (with QR Verification)</a></li>
+      <li><a href="#ai">AI Recommendation Engine (RAG Pipeline)</a></li>
+      <li><a href="#fallback">Fallback &amp; Graceful Degradation Strategy</a></li>
+      <li><a href="#frontend">Frontend Implementation</a></li>
+      <li><a href="#deploy">Deployment &amp; Configuration</a></li>
+      <li><a href="#status">Implementation Status Summary</a></li>
+    </ol>
+  </div>
+
+  <!-- ===================== 1. OVERVIEW ===================== -->
+  <h2 id="overview">1. System Overview</h2>
+  <p>The AI-Powered E-Library Management System is a web application that digitises the core
+    operations of a university library: cataloguing books, managing the borrowing lifecycle,
+    and helping readers discover relevant material through artificial intelligence. It serves
+    four classes of user — <strong>Administrators</strong>, <strong>Librarians</strong>,
+    <strong>Faculty</strong>, and <strong>Students</strong> — each with permissions appropriate
+    to their role.</p>
+
+  <p>The platform is split into two independently deployable applications that communicate over
+    a versioned REST API:</p>
+  <ul>
+    <li><strong>Backend (API server):</strong> a Python <em>FastAPI</em> application backed by a
+      <em>MySQL</em> database, responsible for all business logic, persistence, authentication,
+      and the AI recommendation pipeline.</li>
+    <li><strong>Frontend (client):</strong> a <em>React</em> single-page application that consumes
+      the API and presents a responsive, role-aware user interface.</li>
+  </ul>
+
+  <h3>Core Capabilities</h3>
+  <table>
+    <tr><th>Capability</th><th>Description</th></tr>
+    <tr><td>User management &amp; roles</td><td>Registration, login, and role-based authorisation across four user roles.</td></tr>
+    <tr><td>Book catalogue</td><td>Full CRUD on books with search and filtering by title, author, category, and tags.</td></tr>
+    <tr><td>Loan lifecycle</td><td>A multi-stage borrow→approve→collect→return→confirm workflow with QR-code verification.</td></tr>
+    <tr><td>AI recommendations</td><td>Natural-language book discovery and personalised suggestions via a RAG pipeline.</td></tr>
+    <tr><td>Availability tracking</td><td>Per-title copy counting kept consistent through the loan workflow.</td></tr>
+  </table>
+
+  <!-- ===================== 2. STACK ===================== -->
+  <h2 id="stack">2. Technology Stack</h2>
+  <p>The stack was selected to balance rapid development, strong typing/validation, and first-class
+    support for local AI inference (avoiding dependence on paid third-party LLM APIs).</p>
+
+  <h3>Backend</h3>
+  <table>
+    <tr><th>Layer</th><th>Technology</th><th>Role in the system</th></tr>
+    <tr><td>Web framework</td><td>FastAPI 0.115</td><td>Asynchronous-capable REST framework; auto-generates OpenAPI/Swagger documentation.</td></tr>
+    <tr><td>ASGI server</td><td>Uvicorn</td><td>Runs the FastAPI application.</td></tr>
+    <tr><td>ORM</td><td>SQLAlchemy 2.0</td><td>Object-relational mapping and query construction.</td></tr>
+    <tr><td>Database driver</td><td>PyMySQL</td><td>Pure-Python MySQL connector.</td></tr>
+    <tr><td>Validation</td><td>Pydantic v2</td><td>Request/response schema validation and serialisation.</td></tr>
+    <tr><td>Authentication</td><td>python-jose + passlib[bcrypt]</td><td>JWT signing/verification and bcrypt password hashing.</td></tr>
+    <tr><td>Migrations</td><td>Alembic</td><td>Database schema versioning (available in the toolchain).</td></tr>
+    <tr><td>QR generation</td><td>qrcode[pil]</td><td>Generates loan verification QR codes as PNG images.</td></tr>
+  </table>
+
+  <h3>Artificial Intelligence / Machine Learning</h3>
+  <table>
+    <tr><th>Component</th><th>Technology</th><th>Role</th></tr>
+    <tr><td>LLM runtime</td><td>Ollama (Llama 2)</td><td>Local large-language-model inference for generating recommendation reasoning.</td></tr>
+    <tr><td>Orchestration</td><td>LangChain</td><td>Text splitting and vector-store abstractions.</td></tr>
+    <tr><td>Vector database</td><td>ChromaDB</td><td>Stores book embeddings and performs similarity search.</td></tr>
+    <tr><td>Embeddings</td><td>Sentence-Transformers <code>all-MiniLM-L6-v2</code></td><td>Converts book metadata into 384-dimensional semantic vectors.</td></tr>
+  </table>
+
+  <h3>Frontend</h3>
+  <table>
+    <tr><th>Concern</th><th>Technology</th><th>Role</th></tr>
+    <tr><td>UI library</td><td>React 18</td><td>Component-based user interface.</td></tr>
+    <tr><td>Build tool</td><td>Vite</td><td>Fast dev server and production bundler.</td></tr>
+    <tr><td>Styling</td><td>Tailwind CSS 3</td><td>Utility-first styling with a glassmorphism design theme.</td></tr>
+    <tr><td>State management</td><td>Zustand</td><td>Lightweight global stores (auth, books, loans, recommendations).</td></tr>
+    <tr><td>Routing</td><td>React Router DOM</td><td>Client-side routing with protected routes.</td></tr>
+    <tr><td>HTTP client</td><td>Axios</td><td>API communication with a shared interceptor layer.</td></tr>
+    <tr><td>Icons / Toasts</td><td>Lucide React / React-Toastify</td><td>Iconography and user notifications.</td></tr>
+  </table>
+
+  <!-- ===================== 3. ARCHITECTURE ===================== -->
+  <h2 id="architecture">3. System Architecture</h2>
+  <p>The system follows a <strong>layered (clean) architecture</strong> on the backend, enforcing a
+    strict separation of concerns. Each request flows through clearly defined layers, which makes
+    the code testable, maintainable, and easy to reason about.</p>
+
+  <div class="diagram">┌──────────────────────────────────────────────────────────────┐
+│                     React SPA (Browser)                        │
+│   Pages → Zustand Stores → Axios Service Layer                 │
+└───────────────────────────┬──────────────────────────────────┘
+                            │  HTTPS / JSON  (REST, /api/v1)
+                            ▼
+┌──────────────────────────────────────────────────────────────┐
+│                     FastAPI Application                        │
+│                                                                │
+│   Endpoints (routing, HTTP)      ← validates with Pydantic     │
+│        │                                                       │
+│        ▼                                                       │
+│   Dependencies (auth / RBAC guards)                            │
+│        │                                                       │
+│        ▼                                                       │
+│   Services (business logic)  ──────────►  AI Service (RAG)     │
+│        │                                        │              │
+│        ▼                                        ▼              │
+│   Models (SQLAlchemy ORM)              ChromaDB + Ollama       │
+└───────────────────────────┬──────────────────────────────────┘
+                            │  SQL (PyMySQL)
+                            ▼
+                    ┌───────────────┐
+                    │  MySQL  DB    │
+                    └───────────────┘</div>
+  <p class="fig">Figure 1 — High-level request flow and layer responsibilities.</p>
+
+  <h3>Backend Layer Responsibilities</h3>
+  <table>
+    <tr><th>Layer</th><th>Directory</th><th>Responsibility</th></tr>
+    <tr><td>Endpoints</td><td><code>app/api/endpoints/</code></td><td>HTTP routing, status codes, request/response binding. No business rules.</td></tr>
+    <tr><td>Dependencies</td><td><code>app/api/dependencies/</code></td><td>Reusable injectables — primarily authentication and role guards.</td></tr>
+    <tr><td>Schemas</td><td><code>app/schemas/</code></td><td>Pydantic models defining the API contract and validating data.</td></tr>
+    <tr><td>Services</td><td><code>app/services/</code></td><td>All business logic (loans, books, users, recommendations).</td></tr>
+    <tr><td>Models</td><td><code>app/models/</code></td><td>SQLAlchemy ORM entities mapped to database tables.</td></tr>
+    <tr><td>Core</td><td><code>app/core/</code></td><td>Configuration (<code>config.py</code>) and security primitives (<code>security.py</code>).</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Design rationale.</strong> By routing every operation through a service layer rather than
+    placing logic in the endpoints, the same business rules can be reused (e.g. by the seed script
+    or future scheduled jobs) and tested in isolation from the HTTP layer.
+  </div>
+
+  <!-- ===================== 4. DATA MODEL ===================== -->
+  <h2 id="data">4. Data Model &amp; Database</h2>
+  <p>Persistence uses MySQL via SQLAlchemy. A connection pool is configured with
+    <code>pool_pre_ping=True</code> (to transparently recover stale connections),
+    a pool size of 10, and an overflow of 20, enabling the API to serve concurrent requests
+    efficiently. The schema is composed of four related entities.</p>
+
+  <h3>Entities</h3>
+  <table>
+    <tr><th>Table</th><th>Key fields</th><th>Purpose</th></tr>
+    <tr><td><code>users</code></td><td>id, email, username, full_name, hashed_password, role, department, is_active</td><td>Accounts and role assignment. Passwords are never stored in plaintext.</td></tr>
+    <tr><td><code>books</code></td><td>id, isbn, title, author, category, description, tags, total_copies, available_copies, rating, is_active</td><td>The catalogue. <code>available_copies</code> is decremented/incremented through the loan workflow.</td></tr>
+    <tr><td><code>loans</code></td><td>id, user_id&nbsp;(FK), book_id&nbsp;(FK), loan_date, due_date, return_date, status, renewal_count, qr_code</td><td>One borrowing record, advancing through a state machine. Stores a base64 QR image once approved.</td></tr>
+    <tr><td><code>reading_history</code></td><td>id, user_id&nbsp;(FK), book_id&nbsp;(FK), read_date, rating, reading_time_minutes</td><td>Captures reading patterns to drive personalised recommendations.</td></tr>
+  </table>
+
+  <h3>Relationships</h3>
+  <ul>
+    <li>A <strong>User</strong> has many <strong>Loans</strong> and many <strong>ReadingHistory</strong> entries.</li>
+    <li>A <strong>Book</strong> has many <strong>Loans</strong> and many <strong>ReadingHistory</strong> entries.</li>
+    <li>Deleting a user or book cascades to its related loan and history records
+      (<code>cascade="all, delete-orphan"</code>), preserving referential integrity.</li>
+  </ul>
+
+  <div class="callout">
+    <strong>Soft deletes for books.</strong> Books are never physically removed; deletion sets
+    <code>is_active = False</code>. This preserves the historical integrity of past loans that
+    reference the title while hiding it from the active catalogue.
+  </div>
+
+  <!-- ===================== 5. SECURITY ===================== -->
+  <h2 id="auth">5. Authentication &amp; Security</h2>
+  <p>Security is implemented across several layers: password protection, token-based stateless
+    authentication, role-based authorisation, and transport/configuration controls.</p>
+
+  <h3>5.1 Password Protection</h3>
+  <p>Passwords are hashed with <strong>bcrypt</strong> (via passlib's <code>CryptContext</code>) before
+    storage. Only the resulting hash is persisted in the <code>hashed_password</code> column — the
+    plaintext password is never written to the database or logs. Verification is performed by
+    re-hashing the supplied password and comparing against the stored hash.</p>
+  <pre><code>pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def get_password_hash(password): return pwd_context.hash(password)
+def verify_password(plain, hashed): return pwd_context.verify(plain, hashed)</code></pre>
+
+  <h3>5.2 Stateless Authentication (JWT)</h3>
+  <p>On successful login, the server issues a signed <strong>JSON Web Token (JWT)</strong> containing
+    the user's ID (<code>sub</code>) and an expiry claim (<code>exp</code>). The token is signed with
+    the HS256 algorithm using a server-side secret key. Because the token is self-contained and
+    signed, the server does not need to store sessions — every subsequent request is authenticated
+    by verifying the token's signature and expiry.</p>
+  <pre><code>to_encode = {"exp": expire, "sub": str(user.id)}
+token = jwt.encode(to_encode, settings.SECRET_KEY, algorithm="HS256")</code></pre>
+  <p>Tokens expire after a configurable window (default 30 minutes). Protected endpoints declare a
+    dependency on <code>get_current_user</code>, which decodes and validates the token on every call;
+    an invalid, tampered, or expired token yields <code>401 Unauthorized</code>.</p>
+
+  <h3>5.3 Role-Based Access Control (RBAC)</h3>
+  <p>Authorisation is enforced through a hierarchy of FastAPI dependencies. Endpoints opt into the
+    level of access they require, and the dependency raises <code>403 Forbidden</code> if the
+    authenticated user's role is insufficient.</p>
+  <table>
+    <tr><th>Guard dependency</th><th>Allows</th><th>Used by (examples)</th></tr>
+    <tr><td><code>get_current_user</code></td><td>Any authenticated user</td><td>Borrow a book, view my loans, request recommendations.</td></tr>
+    <tr><td><code>get_current_active_user</code></td><td>Authenticated &amp; active</td><td>Base guard layered beneath the role guards.</td></tr>
+    <tr><td><code>get_current_librarian</code></td><td>Librarian or Admin</td><td>Create/update/delete books, approve loans, confirm returns.</td></tr>
+    <tr><td><code>get_current_admin</code></td><td>Admin only</td><td>Administrative user operations.</td></tr>
+  </table>
+
+  <h3>5.4 Transport &amp; Configuration Controls</h3>
+  <ul>
+    <li><strong>CORS:</strong> a Cross-Origin Resource Sharing policy restricts which front-end
+      origins may call the API (configured via the <code>BACKEND_CORS_ORIGINS</code> setting).</li>
+    <li><strong>Externalised secrets:</strong> sensitive values (database URL, secret key, token
+      lifetime) are read from environment variables / a <code>.env</code> file rather than hard-coded,
+      using Pydantic Settings.</li>
+    <li><strong>Input validation:</strong> every request body is validated by a Pydantic schema,
+      rejecting malformed payloads before they reach the business logic.</li>
+    <li><strong>SQL-injection resistance:</strong> all database access goes through the SQLAlchemy ORM
+      with parameterised queries, never string-concatenated SQL.</li>
+  </ul>
+
+  <div class="callout warn">
+    <strong>Production hardening note.</strong> The repository ships a development default
+    <code>SECRET_KEY</code> and permissive database credentials for ease of local setup. For a
+    production deployment these must be replaced with a strong, randomly generated secret and a
+    least-privilege database account, and the API should be served strictly over HTTPS.
+  </div>
+
+  <!-- ===================== 6. API ===================== -->
+  <h2 id="api">6. API Design &amp; Endpoints</h2>
+  <p>All routes are versioned under <code>/api/v1</code> and grouped by resource. FastAPI
+    automatically publishes interactive documentation at <code>/docs</code> (Swagger UI) and
+    <code>/redoc</code>. The principal endpoints are summarised below.</p>
+
+  <table>
+    <tr><th>Method &amp; Path</th><th>Access</th><th>Purpose</th></tr>
+    <tr><td><code>POST /auth/register</code></td><td>Public</td><td>Register a new account.</td></tr>
+    <tr><td><code>POST /auth/login</code></td><td>Public</td><td>Authenticate and receive a JWT.</td></tr>
+    <tr><td><code>GET /auth/me</code></td><td>Authenticated</td><td>Return the current user's profile.</td></tr>
+    <tr><td><code>GET /books</code></td><td>Public</td><td>List/search books with filters &amp; pagination.</td></tr>
+    <tr><td><code>POST /books</code></td><td>Librarian+</td><td>Add a book to the catalogue.</td></tr>
+    <tr><td><code>PUT /books/{id}</code> &middot; <code>DELETE /books/{id}</code></td><td>Librarian+</td><td>Update or soft-delete a book.</td></tr>
+    <tr><td><code>POST /loans/</code></td><td>Authenticated</td><td>Submit a borrow request (status <em>pending</em>).</td></tr>
+    <tr><td><code>GET /loans/my-loans</code></td><td>Authenticated</td><td>List the caller's own loans.</td></tr>
+    <tr><td><code>POST /loans/{id}/approve</code> &middot; <code>/reject</code></td><td>Librarian+</td><td>Approve (generates QR) or reject a request.</td></tr>
+    <tr><td><code>POST /loans/{id}/request-return</code></td><td>Authenticated</td><td>Borrower signals the book has been returned.</td></tr>
+    <tr><td><code>POST /loans/{id}/confirm-return</code></td><td>Librarian+</td><td>Staff confirms return; restores availability.</td></tr>
+    <tr><td><code>POST /loans/{id}/renew</code></td><td>Authenticated</td><td>Extend the due date (bounded by a renewal limit).</td></tr>
+    <tr><td><code>POST /recommendations/query</code></td><td>Authenticated</td><td>Natural-language book recommendations.</td></tr>
+    <tr><td><code>GET /recommendations/personalized</code></td><td>Authenticated</td><td>Recommendations based on reading history.</td></tr>
+  </table>
+
+  <!-- ===================== 7. LOANS ===================== -->
+  <h2 id="loans">7. The Loan Workflow (with QR Verification)</h2>
+  <p>Rather than a naive instant-checkout, the system models borrowing as an explicit
+    <strong>state machine</strong> that mirrors how a physical library counter operates: a student
+    requests a book, a staff member approves it, the student collects it using a verification QR code,
+    and the return is likewise confirmed by staff. This keeps the digital record and the physical
+    book in sync.</p>
+
+  <div class="diagram">  STUDENT                         SYSTEM / STAFF
+  ───────                         ──────────────
+  request borrow  ───────────►   PENDING        (no copy deducted yet)
+                                   │
+                  staff approve ───┤──►  APPROVED  → QR code generated,
+                                   │                 available_copies − 1
+                  staff reject  ───┘──►  REJECTED
+                                   │
+  collect book using QR            │
+                                   ▼
+  "I returned it" ───────────►   RETURN_REQUESTED
+                                   │
+                  staff confirm ───┴──►  RETURNED  → available_copies + 1
+
+  (background) past due_date  ─────────►  OVERDUE</div>
+  <p class="fig">Figure 2 — Loan state machine.</p>
+
+  <h3>Key Design Decisions</h3>
+  <ul>
+    <li><strong>Copies are reserved on approval, not on request.</strong> A pending request does not
+      decrement availability; only an approved loan does. This prevents speculative requests from
+      locking up stock.</li>
+    <li><strong>Duplicate-request prevention.</strong> A user cannot hold two concurrent active or
+      pending requests for the same title — the service rejects the second with a clear error.</li>
+    <li><strong>QR-code verification.</strong> On approval, the server encodes the loan details
+      (loan ID, book, borrower, due date) into a JSON payload and renders it as a base64 PNG QR code
+      stored on the loan. The borrower presents this at the counter to collect the book, linking the
+      digital approval to the physical handover.</li>
+    <li><strong>Two-sided return confirmation.</strong> The borrower marks a return, but availability
+      is only restored once staff confirm it — avoiding inventory drift from unverified returns.</li>
+    <li><strong>Bounded renewals.</strong> Loans may be renewed up to a fixed maximum and cannot be
+      renewed once overdue.</li>
+    <li><strong>Consistency guard.</strong> The <code>update_available_copies</code> routine refuses
+      any change that would push the count below zero or above the total, protecting the invariant
+      <em>0 ≤ available_copies ≤ total_copies</em>.</li>
+  </ul>
+
+  <!-- ===================== 8. AI ===================== -->
+  <h2 id="ai">8. AI Recommendation Engine (RAG Pipeline)</h2>
+  <p>Book discovery is powered by a <strong>Retrieval-Augmented Generation (RAG)</strong> pipeline.
+    RAG combines a semantic search step (retrieval) with a language model (generation), so that
+    recommendations are grounded in the library's actual catalogue rather than the model's general
+    knowledge. The entire pipeline runs locally via <strong>Ollama</strong>, requiring no external
+    paid API.</p>
+
+  <div class="diagram">  ┌── INDEXING (build the knowledge base) ───────────────────────┐
+  │  Books → rich text (title, author, category, description,    │
+  │          tags, publisher, year)                              │
+  │       → embeddings (all-MiniLM-L6-v2, 384-dim)               │
+  │       → stored in ChromaDB vector collection                 │
+  └──────────────────────────────────────────────────────────────┘
+
+  ┌── QUERY TIME ────────────────────────────────────────────────┐
+  │  user query → embed → similarity search in ChromaDB          │
+  │            → top-k relevant books (RETRIEVAL)                │
+  │            → build context prompt                            │
+  │            → Ollama / Llama 2 reasoning (GENERATION)         │
+  │            → ranked BookRecommendation list (with scores)    │
+  └──────────────────────────────────────────────────────────────┘</div>
+  <p class="fig">Figure 3 — The two phases of the RAG pipeline.</p>
+
+  <h3>8.1 Indexing</h3>
+  <p>Each active book is converted into a descriptive text document combining its title, author,
+    category, description, tags, publisher, and year. These documents are embedded into
+    384-dimensional vectors using the <code>all-MiniLM-L6-v2</code> sentence-transformer model and
+    stored in a ChromaDB collection. Embeddings capture <em>semantic meaning</em>, so conceptually
+    similar books cluster together even when they share no exact keywords.</p>
+
+  <h3>8.2 Retrieval</h3>
+  <p>At query time, the user's natural-language request is embedded with the same model and used to
+    perform a similarity search against the collection. The most semantically similar books are
+    retrieved along with a distance score, which is converted into an intuitive
+    <em>match percentage</em> shown in the UI.</p>
+
+  <h3>8.3 Generation</h3>
+  <p>The retrieved books are assembled into a context block and supplied to the Llama 2 model through
+    Ollama, prompting it to explain why each book matches the user's intent — augmenting raw search
+    results with human-readable reasoning.</p>
+
+  <h3>8.4 Personalised Recommendations</h3>
+  <p>For the "Recommended for you" feature, the system inspects the user's <em>reading history</em>,
+    derives their dominant categories and authors, and synthesises an internal query describing those
+    interests. That query is then run through the same retrieval pipeline, so personalisation reuses
+    the core RAG machinery rather than duplicating it.</p>
+
+  <!-- ===================== 9. FALLBACK ===================== -->
+  <h2 id="fallback">9. Fallback &amp; Graceful Degradation Strategy</h2>
+  <p>A defining engineering characteristic of the recommendation subsystem is its <strong>resilience</strong>.
+    AI components (an embeddings model, a vector store, and an LLM runtime) are heavy and may be
+    unavailable — for example, on a machine where Ollama is not running. Rather than failing the
+    request, the system is designed to <strong>degrade gracefully</strong> through a tiered fallback
+    chain, always returning <em>something useful</em>.</p>
+
+  <table>
+    <tr><th>Tier</th><th>Condition</th><th>Behaviour</th></tr>
+    <tr><td>1 — Full RAG</td><td>Embeddings + ChromaDB + Ollama all available</td><td>Semantic retrieval with LLM-generated reasoning.</td></tr>
+    <tr><td>2 — Retrieval only</td><td>Ollama unavailable</td><td>Returns semantically ranked books from the vector store; the LLM step is skipped without error.</td></tr>
+    <tr><td>3 — Popularity fallback</td><td>Embeddings model fails to load, or no reading history exists</td><td>Returns the highest-rated available books from the database.</td></tr>
+    <tr><td>4 — Safe empty response</td><td>An unexpected error occurs anywhere in the pipeline</td><td>Returns a well-formed empty result instead of a 500 error, so the UI stays functional.</td></tr>
+  </table>
+
+  <div class="callout ok">
+    <strong>Why this matters.</strong> The fallback chain decouples the <em>availability of the core
+    library system</em> from the <em>availability of the optional AI infrastructure</em>. Students can
+    always browse, borrow, and receive at least popularity-based suggestions, even on a deployment that
+    has no GPU or no model installed. Each degradation is logged for observability.
+  </div>
+
+  <p>Comparable defensive handling is applied elsewhere: the embeddings model is wrapped in a
+    try/except at start-up so a missing model never crashes the server, and the recommendation
+    endpoints translate internal failures into a clean <code>503 Service Unavailable</code> with a
+    user-friendly message.</p>
+
+  <!-- ===================== 10. FRONTEND ===================== -->
+  <h2 id="frontend">10. Frontend Implementation</h2>
+  <p>The client is a React single-page application organised around pages, reusable components,
+    global stores, and a service layer.</p>
+
+  <h3>Structure &amp; State</h3>
+  <ul>
+    <li><strong>Service layer (Axios):</strong> a single configured Axios instance centralises the API
+      base URL and attaches the JWT to outgoing requests, so authentication is handled in one place
+      rather than per-call.</li>
+    <li><strong>Global state (Zustand):</strong> lightweight stores hold authentication state, the book
+      catalogue, loans, and recommendations, avoiding prop-drilling without the boilerplate of heavier
+      state libraries.</li>
+    <li><strong>Protected routing:</strong> a <code>ProtectedRoute</code> wrapper redirects
+      unauthenticated users to the login page, and the navigation bar adapts to the user's role —
+      staff see loan-management links while students see "My Loans" and "AI Recommendations".</li>
+  </ul>
+
+  <h3>Role-Aware Experience</h3>
+  <table>
+    <tr><th>Role</th><th>Primary interface</th></tr>
+    <tr><td>Student / Faculty</td><td>Browse and borrow books, track personal loans, view and download collection QR codes, request returns, and explore AI recommendations.</td></tr>
+    <tr><td>Librarian / Admin</td><td>Add/manage books and review the loan queue — approving or rejecting borrow requests and confirming returns from a tabbed management dashboard with live counts.</td></tr>
+  </table>
+
+  <h3>User Experience Details</h3>
+  <ul>
+    <li>Toast notifications give immediate feedback on every action (request submitted, approved, return confirmed, errors).</li>
+    <li>Optimistic, in-progress button states ("Requesting…", "Confirming…") communicate latency clearly.</li>
+    <li>Skeleton loaders and empty states keep the interface informative while data loads.</li>
+    <li>A responsive Tailwind layout with a glassmorphism theme works across desktop and mobile.</li>
+  </ul>
+
+  <!-- ===================== 11. DEPLOY ===================== -->
+  <h2 id="deploy">11. Deployment &amp; Configuration</h2>
+  <h3>Prerequisites</h3>
+  <ul>
+    <li>Python 3.10+ and Node.js 18+</li>
+    <li>MySQL 8.0+ (the application auto-creates its tables on first start)</li>
+    <li>Ollama with the Llama 2 model pulled (optional — the system degrades gracefully without it)</li>
+  </ul>
+
+  <h3>Configuration (environment variables)</h3>
+  <table>
+    <tr><th>Variable</th><th>Purpose</th></tr>
+    <tr><td><code>DATABASE_URL</code></td><td>MySQL connection string.</td></tr>
+    <tr><td><code>SECRET_KEY</code></td><td>JWT signing secret (must be replaced in production).</td></tr>
+    <tr><td><code>ACCESS_TOKEN_EXPIRE_MINUTES</code></td><td>JWT lifetime.</td></tr>
+    <tr><td><code>BACKEND_CORS_ORIGINS</code></td><td>Allowed front-end origins.</td></tr>
+    <tr><td><code>OLLAMA_BASE_URL</code> / <code>OLLAMA_MODEL</code></td><td>Local LLM runtime endpoint and model name.</td></tr>
+    <tr><td><code>VITE_API_BASE_URL</code></td><td>(Frontend) Base URL of the API.</td></tr>
+  </table>
+
+  <h3>Running</h3>
+  <pre><code># Backend
+cd backend
+python -m venv venv &amp;&amp; source venv/bin/activate
+pip install -r requirements.txt
+uvicorn main:app --reload --port 8000      # API + Swagger at /docs
+
+# Frontend
+cd frontend
+npm install
+npm run dev                                 # served on port 5173
+
+# Seed the initial administrator account
+python seed_admin.py</code></pre>
+
+  <!-- ===================== 12. STATUS ===================== -->
+  <h2 id="status">12. Implementation Status Summary</h2>
+  <p>The table below honestly characterises the maturity of each subsystem, distinguishing fully
+    implemented features from those that are partially complete or planned for future iterations of
+    the project.</p>
+
+  <table>
+    <tr><th>Feature</th><th>Status</th><th>Notes</th></tr>
+    <tr><td>JWT authentication &amp; RBAC</td><td><span class="pill done">Complete</span></td><td>Registration, login, four roles, and dependency-based guards are fully working.</td></tr>
+    <tr><td>Book catalogue &amp; search</td><td><span class="pill done">Complete</span></td><td>CRUD, soft-delete, multi-field search and pagination.</td></tr>
+    <tr><td>Loan workflow + QR codes</td><td><span class="pill done">Complete</span></td><td>The full borrow→approve→collect→return→confirm state machine with availability tracking.</td></tr>
+    <tr><td>RAG retrieval &amp; ranking</td><td><span class="pill done">Complete</span></td><td>Embedding, vector search, match scoring, and the tiered fallback chain operate as described.</td></tr>
+    <tr><td>LLM-generated reasoning</td><td><span class="pill partial">Partial</span></td><td>The Llama 2 generation step runs; integrating its narrative output directly into each recommendation card is an identified refinement.</td></tr>
+    <tr><td>Personalised recommendations</td><td><span class="pill partial">Partial</span></td><td>The reading-history-driven mechanism is implemented; automatic population of reading history from loan activity is a planned enhancement, with popularity fallback in the interim.</td></tr>
+    <tr><td>Cover image &amp; PDF storage</td><td><span class="pill partial">Partial</span></td><td>Upload endpoints exist; in-app cover display and an embedded PDF reader are future work.</td></tr>
+    <tr><td>Automated overdue scheduling</td><td><span class="pill future">Planned</span></td><td>Overdue detection logic exists and is invoked on demand; a background scheduler is a future addition.</td></tr>
+    <tr><td>Vector-store persistence</td><td><span class="pill future">Planned</span></td><td>The index currently builds in memory; persisting it to disk is a planned optimisation.</td></tr>
+  </table>
+
+  <div class="callout">
+    <strong>Summary.</strong> The system delivers a complete, secure, role-based library platform with
+    a fully functional multi-stage loan workflow and a resilient AI recommendation pipeline built on
+    open, locally hosted models. Its layered architecture and explicit fallback strategy make it both
+    maintainable and robust, while a clearly scoped set of enhancements defines a natural path for
+    future iterations.
+  </div>
+
+  <p class="meta" style="margin-top:40px; border-top:1px solid var(--line); padding-top:14px;">
+    This report documents the technical implementation of the AI-Powered E-Library Management System.
+    Architecture, security model, AI pipeline, and fallback behaviour are described as implemented in
+    the project source code.
+  </p>
+
+</div>
+</body>
+</html>

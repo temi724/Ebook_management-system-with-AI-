@@ -1,12 +1,12 @@
 # FastAPI and Server
-fastapi==0.104.1
-uvicorn[standard]==0.24.0
+fastapi==0.115.0
+uvicorn[standard]==0.30.6
 python-multipart==0.0.6
 
 # Database
-sqlalchemy==2.0.23
+sqlalchemy==2.0.36
 pymysql==1.1.0
-alembic==1.12.1
+alembic==1.13.3
 
 # Authentication & Security
 python-jose[cryptography]==3.3.0
@@ -23,8 +23,11 @@ ollama==0.1.6
 pypdf==3.17.1
 python-docx==1.1.0
 
+# QR Code generation
+qrcode[pil]==8.2
+
 # Utils
-pydantic==2.5.0
-pydantic-settings==2.1.0
+pydantic==2.9.2
+pydantic-settings==2.5.2
 email-validator==2.1.0
 httpx==0.25.2

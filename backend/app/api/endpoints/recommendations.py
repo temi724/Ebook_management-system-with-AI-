@@ -22,9 +22,15 @@ def get_recommendations_by_query(
             detail="Query is required"
         )
     
-    return get_recommendation_service().get_recommendations_by_query(
-        db, request.query, request.limit
-    )
+    try:
+        return get_recommendation_service().get_recommendations_by_query(
+            db, request.query, request.limit
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Recommendation service is temporarily unavailable. Please try again later."
+        )
 
 
 @router.get("/personalized", response_model=RecommendationResponse)
@@ -34,9 +40,15 @@ def get_personalized_recommendations(
     current_user = Depends(get_current_user)
 ):
     """Get personalized recommendations based on reading history"""
-    return get_recommendation_service().get_personalized_recommendations(
-        db, current_user.id, limit
-    )
+    try:
+        return get_recommendation_service().get_personalized_recommendations(
+            db, current_user.id, limit
+        )
+    except Exception as e:
+        raise HTTPException(
+            status_code=503,
+            detail="Recommendation service is temporarily unavailable. Please try again later."
+        )
 
 
 @router.post("/initialize-vector-store")

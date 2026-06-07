@@ -10,7 +10,7 @@ class LoanBase(BaseModel):
     notes: Optional[str] = None
 
 
-# Schema for creating a loan
+# Schema for creating a loan request
 class LoanCreate(LoanBase):
     pass
 
@@ -24,6 +24,7 @@ class Loan(LoanBase):
     return_date: Optional[datetime] = None
     status: LoanStatus
     renewal_count: int
+    qr_code: Optional[str] = None
     created_at: datetime
     updated_at: datetime
     
@@ -34,6 +35,7 @@ class Loan(LoanBase):
 class LoanWithDetails(Loan):
     book_title: str
     book_author: str
+    book_isbn: Optional[str] = None
     user_name: str
     user_email: str
     is_overdue: bool

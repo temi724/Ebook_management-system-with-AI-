@@ -7,6 +7,9 @@ import Login from './pages/Login';
 import Register from './pages/Register';
 import Dashboard from './pages/Dashboard';
 import Books from './pages/Books';
+import MyLoans from './pages/MyLoans';
+import AdminLoans from './pages/AdminLoans';
+import Recommendations from './pages/Recommendations';
 import useAuthStore from './stores/authStore';
 
 function App() {
@@ -30,44 +33,11 @@ function App() {
             />
 
             {/* Protected Routes */}
-            <Route
-              path="/dashboard"
-              element={
-                <ProtectedRoute>
-                  <Dashboard />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/books"
-              element={
-                <ProtectedRoute>
-                  <Books />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/my-loans"
-              element={
-                <ProtectedRoute>
-                  <div className="page-container">
-                    <h1 className="section-header">My Loans</h1>
-                    <p className="text-gray-400">Coming soon...</p>
-                  </div>
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/recommendations"
-              element={
-                <ProtectedRoute>
-                  <div className="page-container">
-                    <h1 className="section-header">AI Recommendations</h1>
-                    <p className="text-gray-400">Coming soon...</p>
-                  </div>
-                </ProtectedRoute>
-              }
-            />
+            <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
+            <Route path="/books" element={<ProtectedRoute><Books /></ProtectedRoute>} />
+            <Route path="/my-loans" element={<ProtectedRoute><MyLoans /></ProtectedRoute>} />
+            <Route path="/admin/loans" element={<ProtectedRoute><AdminLoans /></ProtectedRoute>} />
+            <Route path="/recommendations" element={<ProtectedRoute><Recommendations /></ProtectedRoute>} />
 
             {/* 404 */}
             <Route path="*" element={<Navigate to="/" replace />} />
@@ -80,3 +50,4 @@ function App() {
 }
 
 export default App;
+
