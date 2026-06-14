@@ -5,6 +5,7 @@ from app.db.base import get_db
 from app.schemas.book import Book, BookCreate, BookUpdate, BookList
 from app.services.book_service import BookService
 from app.api.dependencies.auth import get_current_librarian, get_current_user
+from app.services.recommendation_service import get_recommendation_service
 from app.core.config import settings
 import shutil
 import os
@@ -69,6 +70,8 @@ def create_book(
             )
     
     book = BookService.create(db, book_in)
+    # New book added → refresh AI recommendations index on next query.
+    get_recommendation_service().invalidate_vector_store()
     return book
 
 
@@ -88,6 +91,7 @@ def update_book(
         )
     
     updated_book = BookService.update(db, book, book_in)
+    get_recommendation_service().invalidate_vector_store()
     return updated_book
 
 
@@ -104,6 +108,7 @@ def delete_book(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Book not found"
         )
+    get_recommendation_service().invalidate_vector_store()
 
 
 @router.post("/{book_id}/upload-cover")

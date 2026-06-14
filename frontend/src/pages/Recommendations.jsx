@@ -7,46 +7,45 @@ import Input from '../components/common/Input';
 import Loading from '../components/common/Loading';
 import recommendationService from '../services/recommendationService';
 import loanService from '../services/loanService';
+import BookCover from '../components/common/BookCover';
 
-const BookRecommendationCard = ({ rec, onBorrow, borrowingId }) => (
-    <Card hover className="p-4 flex flex-col">
-        <div className="w-full h-32 bg-gradient-to-br from-indigo-500 to-purple-700 rounded-lg mb-3 flex items-center justify-center">
-            <span className="text-3xl font-bold text-white">
-                {rec.title.split(' ').slice(0, 2).map(w => w[0]).join('').toUpperCase()}
-            </span>
-        </div>
-        <h3 className="font-semibold text-gray-900 text-sm line-clamp-2 mb-1">{rec.title}</h3>
-        <p className="text-xs text-gray-500 mb-1">{rec.author}</p>
-        {rec.category && (
-            <span className="text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-600 w-fit mb-2">
-                {rec.category}
-            </span>
-        )}
-        {rec.reason && (
-            <p className="text-xs text-gray-400 line-clamp-3 flex-1 mb-3">{rec.reason}</p>
-        )}
-        {rec.similarity_score !== undefined && (
-            <div className="flex items-center gap-1 mb-3">
-                <div className="flex-1 h-1.5 rounded-full bg-gray-100">
-                    <div
-                        className="h-1.5 rounded-full bg-indigo-500"
-                        style={{ width: `${Math.round(rec.similarity_score * 100)}%` }}
-                    />
+const BookRecommendationCard = ({ rec, onBorrow, borrowingId }) => {
+    // Similarity scores can be negative; present them as a clamped 0–100% match.
+    const match = Math.max(0, Math.min(100, Math.round((rec.similarity_score ?? 0) * 100)));
+
+    return (
+        <Card hover className="p-3 flex flex-col">
+            <BookCover
+                title={rec.title}
+                author={rec.author}
+                category={rec.category}
+                className="w-[5.5rem] h-32 mx-auto mb-3"
+            />
+            <h3 className="font-display font-bold text-gray-900 text-xs line-clamp-2 mb-0.5 leading-snug text-center">{rec.title}</h3>
+            <p className="text-[11px] text-gray-500 mb-2 text-center line-clamp-1">{rec.author}</p>
+            {rec.similarity_score !== undefined && (
+                <div className="flex items-center gap-1.5 mb-2.5 mt-auto">
+                    <div className="flex-1 h-1 rounded-full bg-gray-100 overflow-hidden">
+                        <div
+                            className="h-1 rounded-full bg-gradient-to-r from-accent-500 to-primary-600"
+                            style={{ width: `${match}%` }}
+                        />
+                    </div>
+                    <span className="text-[10px] text-gray-400 shrink-0">{match}%</span>
                 </div>
-                <span className="text-xs text-gray-400">{Math.round(rec.similarity_score * 100)}% match</span>
-            </div>
-        )}
-        <Button
-            variant="primary"
-            size="sm"
-            className="w-full"
-            disabled={borrowingId === rec.book_id}
-            onClick={() => onBorrow(rec.book_id)}
-        >
-            {borrowingId === rec.book_id ? 'Requesting…' : 'Request Borrow'}
-        </Button>
-    </Card>
-);
+            )}
+            <Button
+                variant="primary"
+                size="sm"
+                className="w-full text-xs py-1.5"
+                disabled={borrowingId === rec.book_id}
+                onClick={() => onBorrow(rec.book_id)}
+            >
+                {borrowingId === rec.book_id ? '…' : 'Borrow'}
+            </Button>
+        </Card>
+    );
+};
 
 const Recommendations = () => {
     const [personalized, setPersonalized] = useState([]);
@@ -135,7 +134,7 @@ const Recommendations = () => {
                         ) : queryResults.length === 0 ? (
                             <p className="text-gray-400 text-sm">No results found. Try a different search.</p>
                         ) : (
-                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                                 {queryResults.map(rec => (
                                     <BookRecommendationCard
                                         key={rec.book_id}
@@ -162,7 +161,7 @@ const Recommendations = () => {
                 </div>
 
                 {isLoadingPersonalized ? (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                         {Array.from({ length: 4 }).map((_, i) => (
                             <Card key={i} className="p-4 animate-pulse">
                                 <div className="w-full h-32 bg-gray-200 rounded-lg mb-3" />
@@ -177,7 +176,7 @@ const Recommendations = () => {
                         <p>Borrow a few books to get personalized recommendations!</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
                         {personalized.map(rec => (
                             <BookRecommendationCard
                                 key={rec.book_id}

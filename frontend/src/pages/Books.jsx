@@ -6,6 +6,7 @@ import Input from '../components/common/Input';
 import Button from '../components/common/Button';
 import Loading from '../components/common/Loading';
 import AddBookModal from '../components/common/AddBookModal';
+import BookCover from '../components/common/BookCover';
 import useBookStore from '../stores/bookStore';
 import useAuthStore from '../stores/authStore';
 import bookService from '../services/bookService';
@@ -173,63 +174,47 @@ const Books = () => {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 mb-8">
-                        {books.map((book, index) => {
-                            const initials = book.title
-                                .split(' ')
-                                .slice(0, 2)
-                                .map(word => word[0])
-                                .join('')
-                                .toUpperCase();
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
+                        {books.map((book, index) => (
+                            <Card
+                                key={book.id}
+                                hover
+                                className="flex flex-col p-4 animate-fade-in"
+                                style={{ animationDelay: `${index * 50}ms` }}
+                            >
+                                {/* Actual book cover */}
+                                <BookCover
+                                    title={book.title}
+                                    author={book.author}
+                                    category={book.category}
+                                    className="aspect-[2/3] w-full mb-4"
+                                />
 
-                            return (
-                                <Card
-                                    key={book.id}
-                                    hover
-                                    className={`flex flex-col p-4 animate-fade-in`}
-                                    style={{ animationDelay: `${index * 50}ms` }}
-                                >
-                                    {/* Book Cover with Initials */}
-                                    <div className="w-full h-40 bg-gradient-to-br from-primary-600 to-primary-800 rounded-lg mb-3 flex items-center justify-center">
-                                        <span className="text-4xl font-display font-bold text-white">
-                                            {initials}
-                                        </span>
-                                    </div>
+                                {/* Book Info */}
+                                <h3 className="font-display font-bold text-gray-900 mb-0.5 line-clamp-2 text-sm leading-snug">
+                                    {book.title}
+                                </h3>
+                                <p className="text-xs text-gray-500 mb-3">{book.author}</p>
 
-                                    {/* Book Info */}
-                                    <h3 className="font-display font-bold text-gray-900 mb-1 line-clamp-2 text-base">
-                                        {book.title}
-                                    </h3>
-                                    <p className="text-sm text-gray-600 mb-2">{book.author}</p>
-
-                                    {book.category && (
-                                        <span className="badge-primary mb-2 text-xs">{book.category}</span>
+                                {/* Actions */}
+                                <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
+                                    <span className={`text-xs font-medium ${book.available_copies > 0 ? 'text-accent-700' : 'text-red-600'}`}>
+                                        {book.available_copies > 0 ? `${book.available_copies} available` : 'Out'}
+                                    </span>
+                                    {user?.role !== 'admin' && user?.role !== 'librarian' && (
+                                        <Button
+                                            variant={book.available_copies > 0 ? 'primary' : 'ghost'}
+                                            size="sm"
+                                            disabled={book.available_copies === 0 || borrowingId === book.id}
+                                            onClick={() => handleBorrow(book.id)}
+                                            className="text-xs px-3 py-1"
+                                        >
+                                            {borrowingId === book.id ? '…' : book.available_copies > 0 ? 'Borrow' : 'N/A'}
+                                        </Button>
                                     )}
-
-                                    <p className="text-xs text-gray-500 mb-3 line-clamp-2 flex-1">
-                                        {book.description || 'No description available'}
-                                    </p>
-
-                                    {/* Actions */}
-                                    <div className="flex items-center justify-between pt-3 border-t border-gray-200">
-                                        <span className={`text-sm font-medium ${book.available_copies > 0 ? 'text-green-600' : 'text-red-600'}`}>
-                                            {book.available_copies} / {book.total_copies} available
-                                        </span>
-                                        {user?.role !== 'admin' && user?.role !== 'librarian' && (
-                                            <Button
-                                                variant={book.available_copies > 0 ? 'primary' : 'ghost'}
-                                                size="sm"
-                                                disabled={book.available_copies === 0 || borrowingId === book.id}
-                                                onClick={() => handleBorrow(book.id)}
-                                                className="text-sm px-3 py-1"
-                                            >
-                                                {borrowingId === book.id ? 'Requesting…' : book.available_copies > 0 ? 'Borrow' : 'Unavailable'}
-                                            </Button>
-                                        )}
-                                    </div>
-                                </Card>
-                            );
-                        })}
+                                </div>
+                            </Card>
+                        ))}
                     </div>
 
                     {/* Pagination */}

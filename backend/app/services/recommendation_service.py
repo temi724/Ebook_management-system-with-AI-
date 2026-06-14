@@ -1,10 +1,22 @@
 from typing import List, Optional
-import ollama
 from sqlalchemy.orm import Session
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-from langchain_community.vectorstores import Chroma
-from langchain_community.embeddings import HuggingFaceEmbeddings
 from app.core.config import settings
+
+# AI/ML dependencies (ollama, langchain, chromadb, sentence-transformers) are heavy
+# and optional. Import them lazily so the API can boot — and gracefully fall back to
+# popularity-based recommendations — even when the AI stack is not installed/available.
+try:
+    import ollama
+    from langchain.text_splitter import RecursiveCharacterTextSplitter
+    from langchain_community.vectorstores import Chroma
+    from langchain_community.embeddings import HuggingFaceEmbeddings
+    AI_DEPENDENCIES_AVAILABLE = True
+except Exception:  # pragma: no cover - depends on optional heavy deps
+    ollama = None
+    RecursiveCharacterTextSplitter = None
+    Chroma = None
+    HuggingFaceEmbeddings = None
+    AI_DEPENDENCIES_AVAILABLE = False
 from app.models.book import Book
 from app.models.reading_history import ReadingHistory
 from app.schemas.recommendation import BookRecommendation, RecommendationResponse
@@ -15,9 +27,25 @@ logger = logging.getLogger(__name__)
 
 class RecommendationService:
     """AI-powered book recommendation service using RAG with Ollama"""
-    
+
+    # Minimum similarity (1 - distance) for a book to be considered a relevant match.
+    # Vector search always returns the nearest books even for unrelated queries, so
+    # without a floor every query would surface the entire catalogue. Empirically,
+    # relevant matches sit well above this value while unrelated books fall far below.
+    RELEVANCE_THRESHOLD = -0.3
+
     def __init__(self):
         self.vector_store = None
+        self.text_splitter = None
+        self.embeddings = None
+
+        if not AI_DEPENDENCIES_AVAILABLE:
+            logger.warning(
+                "AI dependencies (langchain/chromadb/sentence-transformers/ollama) are not "
+                "installed. Recommendations will use popularity-based fallback."
+            )
+            return
+
         self.text_splitter = RecursiveCharacterTextSplitter(
             chunk_size=500,
             chunk_overlap=50
@@ -30,6 +58,11 @@ class RecommendationService:
             logger.warning(f"Could not initialize embeddings model: {e}. Recommendations will use fallback.")
             self.embeddings = None
     
+    def invalidate_vector_store(self):
+        """Mark the cached vector store as stale (e.g. after the catalogue changes).
+        It will be rebuilt lazily on the next recommendation request."""
+        self.vector_store = None
+
     def initialize_vector_store(self, db: Session):
         """Initialize or update vector store with book data"""
         if not self.embeddings:
@@ -121,27 +154,37 @@ Format your response as a list with book titles and reasons."""
                 logger.warning(f"Ollama error: {e}, using fallback recommendations")
                 llm_response = ""
             
-            # Extract book recommendations
+            # Extract book recommendations. Results are ordered best-match first, so once
+            # a book falls below the relevance threshold, none of the remaining ones qualify.
             recommendations = []
             seen_books = set()
-            
-            for doc, score in results[:limit]:
+
+            for doc, score in results:
+                similarity = float(1 - score)
+                if similarity < self.RELEVANCE_THRESHOLD:
+                    break
+
                 book_id = doc.metadata.get("book_id")
-                if book_id and book_id not in seen_books:
-                    book = db.query(Book).filter(Book.id == book_id).first()
-                    if book and book.available_copies > 0:
-                        recommendations.append(
-                            BookRecommendation(
-                                book_id=book.id,
-                                title=book.title,
-                                author=book.author,
-                                category=book.category or "Unknown",
-                                similarity_score=float(1 - score),
-                                reason=f"Highly relevant to your search. This book matches your interest in {book.category or 'this topic'}."
-                            )
+                if not book_id or book_id in seen_books:
+                    continue
+
+                book = db.query(Book).filter(Book.id == book_id).first()
+                if book and book.available_copies > 0:
+                    recommendations.append(
+                        BookRecommendation(
+                            book_id=book.id,
+                            title=book.title,
+                            author=book.author,
+                            category=book.category or "Unknown",
+                            similarity_score=similarity,
+                            reason=f"Highly relevant to your search. This book matches your interest in {book.category or 'this topic'}."
                         )
-                        seen_books.add(book_id)
-            
+                    )
+                    seen_books.add(book_id)
+
+                if len(recommendations) >= limit:
+                    break
+
             return RecommendationResponse(
                 recommendations=recommendations[:limit],
                 query_understood=query,

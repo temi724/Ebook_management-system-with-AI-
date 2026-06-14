@@ -25,7 +25,14 @@ class Loan(Base):
     loan_date = Column(DateTime, default=datetime.utcnow, nullable=False)
     due_date = Column(DateTime, nullable=False)
     return_date = Column(DateTime)
-    status = Column(Enum(LoanStatus), default=LoanStatus.PENDING, nullable=False)
+    status = Column(
+        # Store/read the enum's string *values* ("pending", "approved", ...) rather than
+        # the member names ("PENDING"). This matches the existing MySQL column definition
+        # and data, and the lowercase status strings the frontend expects.
+        Enum(LoanStatus, values_callable=lambda obj: [e.value for e in obj]),
+        default=LoanStatus.PENDING,
+        nullable=False,
+    )
     renewal_count = Column(Integer, default=0)
     notes = Column(Text)
     qr_code = Column(Text, nullable=True)  # Base64 encoded QR code PNG

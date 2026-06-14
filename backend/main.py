@@ -17,14 +17,19 @@ app = FastAPI(
     openapi_url=f"{settings.API_V1_STR}/openapi.json",
     docs_url="/docs",
     redoc_url="/redoc",
-    redirect_slashes=False,
+    # Keep FastAPI's default trailing-slash redirects on, so e.g. GET /books
+    # transparently resolves to the GET /books/ route the frontend expects.
+    redirect_slashes=True,
 )
 
-# Configure CORS
+# Configure CORS.
+# Authentication uses Bearer tokens sent in the Authorization header (not cookies),
+# so we don't need credentialed CORS. Allowing all origins removes cross-origin friction
+# during development regardless of which port Vite happens to use.
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=settings.BACKEND_CORS_ORIGINS,
-    allow_credentials=True,
+    allow_origins=["*"],
+    allow_credentials=False,
     allow_methods=["*"],
     allow_headers=["*"],
 )
