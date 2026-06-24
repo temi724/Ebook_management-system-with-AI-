@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { Sparkles, Search, BookOpen, RefreshCw } from 'lucide-react';
+import { Sparkles, Search, BookOpen, RefreshCw, BookPlus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
@@ -10,40 +10,27 @@ import loanService from '../services/loanService';
 import BookCover from '../components/common/BookCover';
 
 const BookRecommendationCard = ({ rec, onBorrow, borrowingId }) => {
-    // Similarity scores can be negative; present them as a clamped 0–100% match.
-    const match = Math.max(0, Math.min(100, Math.round((rec.similarity_score ?? 0) * 100)));
-
     return (
-        <Card hover className="p-3 flex flex-col">
+        <div className="group flex flex-col items-center text-center">
             <BookCover
                 title={rec.title}
                 author={rec.author}
                 category={rec.category}
-                className="w-[5.5rem] h-32 mx-auto mb-3"
+                className="w-[5.5rem] h-32 mb-2"
             />
-            <h3 className="font-display font-bold text-gray-900 text-xs line-clamp-2 mb-0.5 leading-snug text-center">{rec.title}</h3>
-            <p className="text-[11px] text-gray-500 mb-2 text-center line-clamp-1">{rec.author}</p>
-            {rec.similarity_score !== undefined && (
-                <div className="flex items-center gap-1.5 mb-2.5 mt-auto">
-                    <div className="flex-1 h-1 rounded-full bg-gray-100 overflow-hidden">
-                        <div
-                            className="h-1 rounded-full bg-gradient-to-r from-accent-500 to-primary-600"
-                            style={{ width: `${match}%` }}
-                        />
-                    </div>
-                    <span className="text-[10px] text-gray-400 shrink-0">{match}%</span>
-                </div>
-            )}
+            <h3 className="font-display font-bold text-gray-900 text-xs line-clamp-2 leading-snug">{rec.title}</h3>
+            <p className="text-[11px] text-gray-500 line-clamp-1 mb-2">{rec.author}</p>
             <Button
                 variant="primary"
                 size="sm"
-                className="w-full text-xs py-1.5"
+                icon={BookPlus}
+                className="w-full max-w-[7.5rem] text-xs px-3 py-1.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto transition-opacity"
                 disabled={borrowingId === rec.book_id}
                 onClick={() => onBorrow(rec.book_id)}
             >
                 {borrowingId === rec.book_id ? '…' : 'Borrow'}
             </Button>
-        </Card>
+        </div>
     );
 };
 
@@ -78,7 +65,7 @@ const Recommendations = () => {
         try {
             const data = await recommendationService.getRecommendationsByQuery(searchQuery, 8);
             setQueryResults(data.recommendations || []);
-        } catch (err) {
+        } catch {
             toast.error('Search failed. Please try again.');
         } finally {
             setIsSearching(false);
@@ -134,7 +121,7 @@ const Recommendations = () => {
                         ) : queryResults.length === 0 ? (
                             <p className="text-gray-400 text-sm">No results found. Try a different search.</p>
                         ) : (
-                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-x-4 gap-y-6">
                                 {queryResults.map(rec => (
                                     <BookRecommendationCard
                                         key={rec.book_id}
@@ -161,13 +148,13 @@ const Recommendations = () => {
                 </div>
 
                 {isLoadingPersonalized ? (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-                        {Array.from({ length: 4 }).map((_, i) => (
-                            <Card key={i} className="p-4 animate-pulse">
-                                <div className="w-full h-32 bg-gray-200 rounded-lg mb-3" />
-                                <div className="h-4 bg-gray-200 rounded w-3/4 mb-2" />
-                                <div className="h-3 bg-gray-200 rounded w-1/2" />
-                            </Card>
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-x-4 gap-y-6">
+                        {Array.from({ length: 6 }).map((_, i) => (
+                            <div key={i} className="flex flex-col items-center animate-pulse">
+                                <div className="w-[5.5rem] h-32 bg-gray-200 rounded-lg mb-2" />
+                                <div className="h-3 bg-gray-200 rounded w-16 mb-1" />
+                                <div className="h-2.5 bg-gray-200 rounded w-12" />
+                            </div>
                         ))}
                     </div>
                 ) : personalized.length === 0 ? (
@@ -176,7 +163,7 @@ const Recommendations = () => {
                         <p>Borrow a few books to get personalized recommendations!</p>
                     </div>
                 ) : (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-x-4 gap-y-6">
                         {personalized.map(rec => (
                             <BookRecommendationCard
                                 key={rec.book_id}

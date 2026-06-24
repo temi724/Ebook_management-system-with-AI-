@@ -4,7 +4,6 @@ import { Mail, Lock, User as UserIcon, BookOpen } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
-import useAuthStore from '../stores/authStore';
 import authService from '../services/authService';
 
 const Register = () => {
@@ -20,7 +19,6 @@ const Register = () => {
     const [isLoading, setIsLoading] = useState(false);
 
     const navigate = useNavigate();
-    const { login } = useAuthStore();
 
     const handleChange = (e) => {
         setFormData({
@@ -57,15 +55,13 @@ const Register = () => {
             const { confirmPassword, ...registerData } = formData;
             await authService.register(registerData);
 
-            // Auto login after registration
-            const tokenData = await authService.login({
-                username: formData.username,
-                password: formData.password,
+            // Account created — send the user to the login page to sign in.
+            toast.success('Account created successfully! Please sign in.', {
+                position: "top-right",
+                autoClose: 5000,
+                pauseOnHover: true,
             });
-            const userData = await authService.getCurrentUser();
-
-            login(userData, tokenData.access_token);
-            navigate('/dashboard');
+            navigate('/login');
         } catch (err) {
             const errorMessage = err.response?.data?.detail || 'Registration failed. Please try again.';
             toast.error(errorMessage, {

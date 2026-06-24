@@ -35,15 +35,35 @@ class BookService:
         """Search books with filters and pagination"""
         db_query = db.query(Book).filter(Book.is_active == True)
         
-        # Apply search query filter
+        # Apply search query filter.
+        # Match any search term across title/author/description/tags/category. Each
+        # word ≥3 chars is also matched in singular form (e.g. "maths" → "math") so
+        # common abbreviations/plurals still find results.
         if query:
-            search_filter = or_(
-                Book.title.ilike(f"%{query}%"),
-                Book.author.ilike(f"%{query}%"),
-                Book.description.ilike(f"%{query}%"),
-                Book.tags.ilike(f"%{query}%")
-            )
-            db_query = db_query.filter(search_filter)
+            terms = set()
+            for raw in query.split():
+                w = raw.strip().lower()
+                if len(w) < 3:
+                    continue
+                terms.add(w)
+                if len(w) > 3 and w.endswith("s"):
+                    terms.add(w[:-1])
+            if not terms:
+                terms = {query.strip().lower()}
+
+            term_filters = []
+            for term in terms:
+                like = f"%{term}%"
+                term_filters.append(
+                    or_(
+                        Book.title.ilike(like),
+                        Book.author.ilike(like),
+                        Book.description.ilike(like),
+                        Book.tags.ilike(like),
+                        Book.category.ilike(like),
+                    )
+                )
+            db_query = db_query.filter(or_(*term_filters))
         
         # Apply category filter
         if category:

@@ -1,18 +1,15 @@
 from typing import List, Optional
 from sqlalchemy.orm import Session
-from app.core.config import settings
 
-# AI/ML dependencies (ollama, langchain, chromadb, sentence-transformers) are heavy
-# and optional. Import them lazily so the API can boot — and gracefully fall back to
+# AI/ML dependencies (langchain, chromadb, sentence-transformers) are heavy and
+# optional. Import them lazily so the API can boot — and gracefully fall back to
 # popularity-based recommendations — even when the AI stack is not installed/available.
 try:
-    import ollama
     from langchain.text_splitter import RecursiveCharacterTextSplitter
     from langchain_community.vectorstores import Chroma
     from langchain_community.embeddings import HuggingFaceEmbeddings
     AI_DEPENDENCIES_AVAILABLE = True
 except Exception:  # pragma: no cover - depends on optional heavy deps
-    ollama = None
     RecursiveCharacterTextSplitter = None
     Chroma = None
     HuggingFaceEmbeddings = None
@@ -28,11 +25,11 @@ logger = logging.getLogger(__name__)
 class RecommendationService:
     """AI-powered book recommendation service using RAG with Ollama"""
 
-    # Minimum similarity (1 - distance) for a book to be considered a relevant match.
+    # Minimum cosine similarity for a book to be considered a relevant match.
     # Vector search always returns the nearest books even for unrelated queries, so
-    # without a floor every query would surface the entire catalogue. Empirically,
-    # relevant matches sit well above this value while unrelated books fall far below.
-    RELEVANCE_THRESHOLD = -0.3
+    # without a floor every query would surface the entire catalogue. With cosine
+    # scoring, relevant matches sit at ~0.45+ while unrelated books fall below ~0.25.
+    RELEVANCE_THRESHOLD = 0.35
 
     def __init__(self):
         self.vector_store = None
@@ -99,12 +96,14 @@ class RecommendationService:
                     "category": book.category or "Unknown"
                 })
             
-            # Create vector store
+            # Create vector store. Use cosine distance so the score maps to a clean
+            # cosine similarity (0–1 for related text) rather than raw L2 distance.
             self.vector_store = Chroma.from_texts(
                 texts=documents,
                 embedding=self.embeddings,
                 metadatas=metadatas,
-                collection_name="books"
+                collection_name="books",
+                collection_metadata={"hnsw:space": "cosine"},
             )
             
             logger.info(f"Vector store initialized with {len(books)} books")
@@ -124,36 +123,11 @@ class RecommendationService:
             if not self.vector_store:
                 self.initialize_vector_store(db)
             
-            # Search similar books
+            # Search similar books (retrieve a few extra to allow for filtering).
             results = self.vector_store.similarity_search_with_score(
                 query, k=limit * 2
             )
-            
-            # Prepare context for LLM
-            context = "\n\n".join([
-                f"Book {i+1}: {doc.page_content}"
-                for i, (doc, score) in enumerate(results[:10])
-            ])
-            
-            # Use Ollama to generate intelligent recommendations
-            prompt = f"""Based on the user's query: "{query}"
 
-Here are relevant books from the library:
-{context}
-
-Please recommend the top {limit} books that best match the query. For each book, explain why it's a good match.
-Format your response as a list with book titles and reasons."""
-            
-            try:
-                response = ollama.generate(
-                    model=settings.OLLAMA_MODEL,
-                    prompt=prompt
-                )
-                llm_response = response.get('response', '')
-            except Exception as e:
-                logger.warning(f"Ollama error: {e}, using fallback recommendations")
-                llm_response = ""
-            
             # Extract book recommendations. Results are ordered best-match first, so once
             # a book falls below the relevance threshold, none of the remaining ones qualify.
             recommendations = []

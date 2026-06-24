@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Search, Filter, BookOpen, Plus } from 'lucide-react';
+import { Search, Filter, BookOpen, Plus, BookPlus } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Card from '../components/common/Card';
 import Input from '../components/common/Input';
@@ -37,6 +37,22 @@ const Books = () => {
         fetchBooks();
     }, [page, searchQuery, filters]);
 
+    // Live search: auto-search once the user types 3+ characters (debounced),
+    // and reset to the full list when the box is cleared. No button press needed.
+    useEffect(() => {
+        const q = localSearch.trim();
+        const timer = setTimeout(() => {
+            if (q.length >= 3) {
+                setSearchQuery(q);
+                setPage(1);
+            } else if (q.length === 0) {
+                setSearchQuery('');
+                setPage(1);
+            }
+        }, 400);
+        return () => clearTimeout(timer);
+    }, [localSearch, setSearchQuery, setPage]);
+
     const fetchBooks = async () => {
         try {
             setLoading(true);
@@ -57,7 +73,7 @@ const Books = () => {
 
     const handleSearch = (e) => {
         e.preventDefault();
-        setSearchQuery(localSearch);
+        setSearchQuery(localSearch.trim());
         setPage(1);
     };
 
@@ -143,9 +159,13 @@ const Books = () => {
                             icon={Search}
                         />
                     </div>
-                    <Button type="submit" variant="primary">
-                        Search
-                    </Button>
+                    <Button
+                        type="submit"
+                        variant="primary"
+                        icon={Search}
+                        aria-label="Search"
+                        className="px-4 shrink-0"
+                    />
                     <Button
                         type="button"
                         variant="ghost"
@@ -174,47 +194,45 @@ const Books = () => {
                 </div>
             ) : (
                 <>
-                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6 mb-8">
-                        {books.map((book, index) => (
-                            <Card
-                                key={book.id}
-                                hover
-                                className="flex flex-col p-4 animate-fade-in"
-                                style={{ animationDelay: `${index * 50}ms` }}
-                            >
-                                {/* Actual book cover */}
-                                <BookCover
-                                    title={book.title}
-                                    author={book.author}
-                                    category={book.category}
-                                    className="aspect-[2/3] w-full mb-4"
-                                />
-
-                                {/* Book Info */}
-                                <h3 className="font-display font-bold text-gray-900 mb-0.5 line-clamp-2 text-sm leading-snug">
-                                    {book.title}
-                                </h3>
-                                <p className="text-xs text-gray-500 mb-3">{book.author}</p>
-
-                                {/* Actions */}
-                                <div className="mt-auto flex items-center justify-between pt-3 border-t border-gray-100 gap-2">
-                                    <span className={`text-xs font-medium ${book.available_copies > 0 ? 'text-accent-700' : 'text-red-600'}`}>
-                                        {book.available_copies > 0 ? `${book.available_copies} available` : 'Out'}
+                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-x-4 gap-y-6 mb-8">
+                        {books.map((book, index) => {
+                            const isReader = user?.role !== 'admin' && user?.role !== 'librarian';
+                            const available = book.available_copies > 0;
+                            return (
+                                <div
+                                    key={book.id}
+                                    className="group flex flex-col items-center text-center animate-fade-in"
+                                    style={{ animationDelay: `${index * 40}ms` }}
+                                >
+                                    <BookCover
+                                        title={book.title}
+                                        author={book.author}
+                                        category={book.category}
+                                        className="w-[5.5rem] h-32 mb-2"
+                                    />
+                                    <h3 className="font-display font-bold text-gray-900 text-xs line-clamp-2 leading-snug">
+                                        {book.title}
+                                    </h3>
+                                    <p className="text-[11px] text-gray-500 line-clamp-1">{book.author}</p>
+                                    <span className={`text-[11px] font-medium mt-1 ${available ? 'text-accent-700' : 'text-red-600'}`}>
+                                        {available ? `${book.available_copies} available` : 'Out of stock'}
                                     </span>
-                                    {user?.role !== 'admin' && user?.role !== 'librarian' && (
+
+                                    {isReader && (
                                         <Button
-                                            variant={book.available_copies > 0 ? 'primary' : 'ghost'}
+                                            variant={available ? 'primary' : 'ghost'}
                                             size="sm"
-                                            disabled={book.available_copies === 0 || borrowingId === book.id}
+                                            icon={BookPlus}
+                                            disabled={!available || borrowingId === book.id}
                                             onClick={() => handleBorrow(book.id)}
-                                            className="text-xs px-3 py-1"
+                                            className="mt-2 w-full max-w-[7.5rem] text-xs px-3 py-1.5 opacity-0 pointer-events-none group-hover:opacity-100 group-hover:pointer-events-auto focus-visible:opacity-100 focus-visible:pointer-events-auto transition-opacity"
                                         >
-                                            {borrowingId === book.id ? '…' : book.available_copies > 0 ? 'Borrow' : 'N/A'}
+                                            {borrowingId === book.id ? '…' : available ? 'Borrow' : 'N/A'}
                                         </Button>
                                     )}
                                 </div>
-                            </Card>
-                        ))}
+                            );
+                        })}
                     </div>
 
                     {/* Pagination */}

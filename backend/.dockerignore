@@ -1,0 +1,25 @@
+# Virtual environments (rebuilt inside the image)
+venv/
+venv311/
+env/
+.venv/
+
+# Python caches
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Local config & secrets — pass these at runtime via -e / --env-file instead
+.env
+
+# Local data / generated artifacts
+uploads/
+chroma/
+*.sqlite3
+.cache/
+
+# Editor / OS noise
+.DS_Store
+.idea/
+.vscode/

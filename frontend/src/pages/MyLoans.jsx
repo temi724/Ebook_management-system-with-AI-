@@ -3,7 +3,6 @@ import { BookMarked, QrCode, RotateCcw, Clock, CheckCircle, XCircle, AlertCircle
 import { toast } from 'react-toastify';
 import Card from '../components/common/Card';
 import Button from '../components/common/Button';
-import Loading from '../components/common/Loading';
 import Modal from '../components/common/Modal';
 import loanService from '../services/loanService';
 
@@ -89,7 +88,7 @@ const MyLoans = () => {
             setIsLoading(true);
             const data = await loanService.getMyLoans();
             setLoans(data);
-        } catch (err) {
+        } catch {
             toast.error('Failed to load your loans');
         } finally {
             setIsLoading(false);
@@ -120,7 +119,7 @@ const MyLoans = () => {
         return loans.filter(l => tab?.statuses.includes(l.status)).length;
     };
 
-    if (isLoading) return <Loading fullScreen message="Loading your loans…" />;
+    if (isLoading) return <MyLoansSkeleton />;
 
     return (
         <div className="page-container">
@@ -215,5 +214,35 @@ const MyLoans = () => {
         </div>
     );
 };
+
+const MyLoansSkeleton = () => (
+    <div className="page-container animate-pulse">
+        {/* Header */}
+        <div className="mb-6 space-y-2">
+            <div className="h-7 w-44 bg-gray-200 rounded" />
+            <div className="h-4 w-72 bg-gray-200 rounded" />
+        </div>
+        {/* Tabs */}
+        <div className="flex gap-2 mb-6">
+            {Array.from({ length: 4 }).map((_, i) => (
+                <div key={i} className="h-9 w-24 bg-gray-200 rounded-lg" />
+            ))}
+        </div>
+        {/* Loan cards */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {Array.from({ length: 6 }).map((_, i) => (
+                <div key={i} className="card p-4 space-y-3">
+                    <div className="h-4 w-3/4 bg-gray-200 rounded" />
+                    <div className="h-3 w-1/2 bg-gray-200 rounded" />
+                    <div className="h-5 w-20 bg-gray-200 rounded-full" />
+                    <div className="space-y-1.5 pt-1">
+                        <div className="h-3 w-2/3 bg-gray-200 rounded" />
+                        <div className="h-3 w-1/2 bg-gray-200 rounded" />
+                    </div>
+                </div>
+            ))}
+        </div>
+    </div>
+);
 
 export default MyLoans;

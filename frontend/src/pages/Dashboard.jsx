@@ -1,27 +1,30 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import {
     BookOpen, BookMarked, AlertTriangle, Sparkles, ClipboardList,
-    ArrowRight, Library, Clock,
+    ArrowRight, Library, Tag, QrCode, RotateCcw,
 } from 'lucide-react';
 import Card from '../components/common/Card';
-import Loading from '../components/common/Loading';
+import BookCover from '../components/common/BookCover';
 import useAuthStore from '../stores/authStore';
 import useLoanStore from '../stores/loanStore';
+import useBookStore from '../stores/bookStore';
 import useRecommendationStore from '../stores/recommendationStore';
 import loanService from '../services/loanService';
+import bookService from '../services/bookService';
 import recommendationService from '../services/recommendationService';
+
+const ACTIVE_STATUSES = ['approved', 'active', 'renewed', 'overdue'];
 
 const Dashboard = () => {
     const { user } = useAuthStore();
     const { myLoans, setMyLoans } = useLoanStore();
+    const { setSearchQuery, setFilters, setPage } = useBookStore();
     const { personalizedRecommendations, setPersonalizedRecommendations } = useRecommendationStore();
+    const navigate = useNavigate();
     const [isLoading, setIsLoading] = useState(true);
-    const [stats, setStats] = useState({
-        activeLoans: 0,
-        overdueLoans: 0,
-        totalBooksRead: 0,
-    });
+    const [categories, setCategories] = useState([]);
+    const [stats, setStats] = useState({ activeLoans: 0, overdueLoans: 0, totalBooksRead: 0 });
 
     const isStaff = user?.role === 'admin' || user?.role === 'librarian';
 
@@ -33,16 +36,30 @@ const Dashboard = () => {
                     const loansData = await loanService.getMyLoans();
                     setMyLoans(loansData);
 
-                    const active = loansData.filter(loan =>
-                        ['approved', 'active', 'renewed'].includes(loan.status)
-                    ).length;
-                    const overdue = loansData.filter(loan => loan.status === 'overdue').length;
-                    const returned = loansData.filter(loan => loan.status === 'returned').length;
-
+                    const active = loansData.filter(l => ['approved', 'active', 'renewed'].includes(l.status)).length;
+                    const overdue = loansData.filter(l => l.status === 'overdue').length;
+                    const returned = loansData.filter(l => l.status === 'returned').length;
                     setStats({ activeLoans: active, overdueLoans: overdue, totalBooksRead: returned });
 
+                    // Derive a list of categories from the catalogue for the "Browse by category" row.
                     try {
-                        const recsData = await recommendationService.getPersonalizedRecommendations(5);
+                        const booksData = await bookService.getBooks({ pageSize: 50 });
+                        const seen = new Set();
+                        const cats = [];
+                        for (const b of booksData.books || []) {
+                            const c = (b.category || '').trim();
+                            if (c && !seen.has(c.toLowerCase())) {
+                                seen.add(c.toLowerCase());
+                                cats.push(c);
+                            }
+                        }
+                        setCategories(cats.slice(0, 10));
+                    } catch (err) {
+                        console.error('Failed to fetch categories:', err);
+                    }
+
+                    try {
+                        const recsData = await recommendationService.getPersonalizedRecommendations(8);
                         setPersonalizedRecommendations(recsData.recommendations);
                     } catch (err) {
                         console.error('Failed to fetch recommendations:', err);
@@ -59,7 +76,7 @@ const Dashboard = () => {
     }, [setMyLoans, setPersonalizedRecommendations, isStaff]);
 
     if (isLoading) {
-        return <Loading fullScreen message="Loading your dashboard..." />;
+        return <DashboardSkeleton isStaff={isStaff} />;
     }
 
     const today = new Date().toLocaleDateString(undefined, {
@@ -67,15 +84,27 @@ const Dashboard = () => {
     });
 
     const statCards = [
-        { label: 'Active Loans', value: stats.activeLoans, Icon: BookMarked, gradient: 'from-primary-500 to-primary-700' },
-        { label: 'Overdue Books', value: stats.overdueLoans, Icon: AlertTriangle, gradient: 'from-secondary-400 to-secondary-600' },
-        { label: 'Books Read', value: stats.totalBooksRead, Icon: BookOpen, gradient: 'from-accent-500 to-accent-700' },
+        { label: 'Active Loans', value: stats.activeLoans, Icon: BookMarked },
+        { label: 'Overdue Books', value: stats.overdueLoans, Icon: AlertTriangle },
+        { label: 'Books Read', value: stats.totalBooksRead, Icon: BookOpen },
     ];
+
+    // The "currently borrowed" feature: soonest-due active loan.
+    const featured = myLoans
+        .filter(l => ACTIVE_STATUSES.includes(l.status))
+        .sort((a, b) => new Date(a.due_date) - new Date(b.due_date))[0];
+
+    const goToCategory = (cat) => {
+        setSearchQuery('');
+        setFilters({ category: cat, author: '' });
+        setPage(1);
+        navigate('/books');
+    };
 
     return (
         <div className="page-container">
             {/* ── Welcome banner ── */}
-            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary-700 to-primary-900 p-8 md:p-10 mb-8 shadow-lg animate-fade-in">
+            <div className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-primary-700 to-primary-900 p-8 md:p-10 mb-8 animate-fade-in">
                 <div className="pointer-events-none absolute -top-16 -right-10 w-64 h-64 bg-secondary-500/20 rounded-full blur-3xl" />
                 <div className="relative">
                     <p className="text-primary-200 text-sm mb-1">{today}</p>
@@ -104,25 +133,44 @@ const Dashboard = () => {
                                         <p className="text-gray-500 text-xs mb-1">{s.label}</p>
                                         <p className="text-3xl font-bold text-gray-900">{s.value}</p>
                                     </div>
-                                    <div className={`p-3 rounded-2xl bg-gradient-to-br ${s.gradient} shadow-md`}>
-                                        <s.Icon className="text-white" size={22} />
+                                    <div className="p-3 rounded-2xl bg-primary-50">
+                                        <s.Icon className="text-primary-600" size={22} />
                                     </div>
                                 </div>
                             </Card>
                         ))}
                     </div>
 
-                    {/* ── Quick actions ── */}
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-10">
-                        <QuickAction
-                            to="/books" Icon={BookOpen} gradient="from-primary-500 to-primary-700"
-                            title="Browse Books" subtitle="Explore the full collection"
-                        />
-                        <QuickAction
-                            to="/recommendations" Icon={Sparkles} gradient="from-accent-500 to-accent-700"
-                            title="AI Recommendations" subtitle="Get personalised suggestions"
-                        />
+                    {/* ── Currently borrowed (featured) ── */}
+                    <div className="mb-8">
+                        <div className="flex items-center justify-between mb-4">
+                            <h2 className="text-xl font-display font-bold text-gray-900">Currently Borrowed</h2>
+                            <Link to="/my-loans" className="text-primary-600 hover:text-primary-700 text-sm font-semibold inline-flex items-center gap-1">
+                                My borrows <ArrowRight size={14} />
+                            </Link>
+                        </div>
+                        {featured ? <FeaturedLoan loan={featured} /> : <EmptyFeatured />}
                     </div>
+
+                    {/* ── Browse by category ── */}
+                    {categories.length > 0 && (
+                        <div className="mb-8">
+                            <h2 className="text-xl font-display font-bold text-gray-900 mb-4 flex items-center gap-2">
+                                <Tag className="text-primary-600" size={20} /> Browse by Category
+                            </h2>
+                            <div className="flex flex-wrap gap-2.5">
+                                {categories.map(cat => (
+                                    <button
+                                        key={cat}
+                                        onClick={() => goToCategory(cat)}
+                                        className="px-4 py-2 rounded-full bg-white border border-gray-200 text-sm text-gray-700 font-medium hover:border-primary-400 hover:text-primary-700 hover:shadow-sm transition-all"
+                                    >
+                                        {cat}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                    )}
 
                     {/* ── Personalized recommendations ── */}
                     {personalizedRecommendations.length > 0 && (
@@ -135,28 +183,18 @@ const Dashboard = () => {
                                     See all <ArrowRight size={14} />
                                 </Link>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {personalizedRecommendations.slice(0, 3).map((rec, index) => (
-                                    <Card key={index} hover className="p-4">
-                                        <div className="flex items-start gap-3 mb-2">
-                                            <div className="p-2 bg-accent-500/10 rounded-xl shrink-0">
-                                                <BookOpen className="text-accent-600" size={18} />
-                                            </div>
-                                            <div className="min-w-0">
-                                                <h3 className="font-semibold text-gray-900 text-sm truncate">{rec.title}</h3>
-                                                <p className="text-xs text-gray-500">{rec.author}</p>
-                                            </div>
-                                        </div>
-                                        {rec.reason && <p className="text-xs text-gray-500 mb-3 line-clamp-2">{rec.reason}</p>}
-                                        <div className="flex items-center justify-between">
-                                            {rec.category && (
-                                                <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-700 rounded-md font-medium">{rec.category}</span>
-                                            )}
-                                            <Link to="/recommendations" className="text-primary-600 hover:text-primary-700 text-xs font-semibold inline-flex items-center gap-1">
-                                                View <ArrowRight size={12} />
-                                            </Link>
-                                        </div>
-                                    </Card>
+                            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-x-3 gap-y-5">
+                                {personalizedRecommendations.slice(0, 6).map((rec, index) => (
+                                    <Link to="/recommendations" key={index} className="block group">
+                                        <BookCover
+                                            title={rec.title}
+                                            author={rec.author}
+                                            category={rec.category}
+                                            className="w-[5.5rem] h-32 mx-auto mb-2"
+                                        />
+                                        <h3 className="font-display font-bold text-gray-900 text-xs line-clamp-2 leading-snug text-center">{rec.title}</h3>
+                                        <p className="text-[11px] text-gray-500 text-center line-clamp-1">{rec.author}</p>
+                                    </Link>
                                 ))}
                             </div>
                         </div>
@@ -168,11 +206,11 @@ const Dashboard = () => {
             {isStaff && (
                 <div className="animate-fade-in grid grid-cols-1 md:grid-cols-2 gap-4">
                     <QuickAction
-                        to="/books" Icon={Library} gradient="from-primary-500 to-primary-700"
+                        to="/books" Icon={Library}
                         title="Manage Books" subtitle="Add, edit and organise the catalogue"
                     />
                     <QuickAction
-                        to="/admin/loans" Icon={ClipboardList} gradient="from-secondary-400 to-secondary-600"
+                        to="/admin/loans" Icon={ClipboardList}
                         title="Loan Requests" subtitle="Approve borrows and confirm returns"
                     />
                 </div>
@@ -181,12 +219,128 @@ const Dashboard = () => {
     );
 };
 
-const QuickAction = ({ to, Icon, gradient, title, subtitle }) => (
+const FeaturedLoan = ({ loan }) => {
+    // Snapshot "now" once on mount (lazy init keeps render pure).
+    const [now] = useState(() => Date.now());
+    const start = new Date(loan.loan_date).getTime();
+    const due = new Date(loan.due_date).getTime();
+    const overdue = loan.is_overdue || loan.status === 'overdue';
+    const pct = overdue ? 100 : Math.max(3, Math.min(100, Math.round(((now - start) / (due - start)) * 100)));
+    const daysLeft = Math.ceil((due - now) / 86_400_000);
+    const dueLabel = overdue ? 'Overdue' : daysLeft <= 0 ? 'Due today' : `Due in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`;
+    const barColor = overdue ? 'bg-red-500' : 'bg-primary-600';
+
+    return (
+        <Card className="p-5 animate-fade-in">
+            <div className="flex flex-col sm:flex-row gap-5">
+                <BookCover
+                    title={loan.book_title}
+                    author={loan.book_author}
+                    className="w-24 h-36 shrink-0 mx-auto sm:mx-0"
+                />
+                <div className="flex-1 flex flex-col min-w-0">
+                    <span className="text-[11px] uppercase tracking-wider text-primary-600 font-semibold mb-1">
+                        Continue where you left off
+                    </span>
+                    <h3 className="text-lg font-display font-bold text-gray-900 truncate">{loan.book_title}</h3>
+                    <p className="text-sm text-gray-500 mb-3">{loan.book_author}</p>
+
+                    <div className="mb-1.5 flex items-center justify-between text-xs">
+                        <span className={overdue ? 'text-red-600 font-semibold' : 'text-gray-500'}>{dueLabel}</span>
+                        <span className="text-gray-400">due {new Date(loan.due_date).toLocaleDateString()}</span>
+                    </div>
+                    <div className="h-2 rounded-full bg-gray-100 overflow-hidden">
+                        <div className={`h-2 rounded-full ${barColor}`} style={{ width: `${pct}%` }} />
+                    </div>
+
+                    <div className="mt-auto pt-4 flex gap-2">
+                        <Link
+                            to="/my-loans"
+                            className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-lg transition-colors"
+                        >
+                            {loan.status === 'approved' ? <><QrCode size={15} /> Show QR</> : <><RotateCcw size={15} /> Manage loan</>}
+                        </Link>
+                    </div>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
+const EmptyFeatured = () => (
+    <Card className="p-8 text-center">
+        <BookMarked className="mx-auto mb-3 text-gray-300" size={40} />
+        <p className="text-gray-500 mb-4">You have no active borrows right now.</p>
+        <Link
+            to="/books"
+            className="inline-flex items-center gap-1.5 px-5 py-2.5 bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold rounded-lg transition-colors"
+        >
+            <BookOpen size={16} /> Browse the library
+        </Link>
+    </Card>
+);
+
+const DashboardSkeleton = ({ isStaff }) => (
+    <div className="page-container animate-pulse">
+        {/* Welcome banner placeholder */}
+        <div className="h-32 md:h-36 rounded-3xl bg-gray-200 mb-8" />
+
+        {!isStaff ? (
+            <>
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-8">
+                    {Array.from({ length: 3 }).map((_, i) => (
+                        <div key={i} className="card p-5">
+                            <div className="flex items-center justify-between">
+                                <div className="space-y-2">
+                                    <div className="h-3 w-20 bg-gray-200 rounded" />
+                                    <div className="h-7 w-12 bg-gray-200 rounded" />
+                                </div>
+                                <div className="w-12 h-12 rounded-2xl bg-gray-200" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                {/* Featured loan placeholder */}
+                <div className="card p-5 mb-8 flex gap-5">
+                    <div className="w-24 h-36 rounded-lg bg-gray-200 shrink-0" />
+                    <div className="flex-1 space-y-3">
+                        <div className="h-3 w-32 bg-gray-200 rounded" />
+                        <div className="h-5 w-48 bg-gray-200 rounded" />
+                        <div className="h-3 w-24 bg-gray-200 rounded" />
+                        <div className="h-2 w-full bg-gray-200 rounded-full" />
+                    </div>
+                </div>
+                {/* Category chips placeholder */}
+                <div className="flex flex-wrap gap-2.5">
+                    {Array.from({ length: 5 }).map((_, i) => (
+                        <div key={i} className="h-9 w-24 rounded-full bg-gray-200" />
+                    ))}
+                </div>
+            </>
+        ) : (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {Array.from({ length: 2 }).map((_, i) => (
+                    <div key={i} className="card p-5">
+                        <div className="flex items-center gap-4">
+                            <div className="w-14 h-14 rounded-2xl bg-gray-200" />
+                            <div className="flex-1 space-y-2">
+                                <div className="h-5 w-40 bg-gray-200 rounded" />
+                                <div className="h-3 w-52 bg-gray-200 rounded" />
+                            </div>
+                        </div>
+                    </div>
+                ))}
+            </div>
+        )}
+    </div>
+);
+
+const QuickAction = ({ to, Icon, title, subtitle }) => (
     <Link to={to} className="block group">
         <Card hover className="h-full p-5">
             <div className="flex items-center gap-4">
-                <div className={`p-3.5 rounded-2xl bg-gradient-to-br ${gradient} shadow-md group-hover:scale-110 transition-transform`}>
-                    <Icon className="text-white" size={24} />
+                <div className="p-3.5 rounded-2xl bg-primary-50 group-hover:bg-primary-100 transition-colors">
+                    <Icon className="text-primary-600" size={24} />
                 </div>
                 <div className="flex-1">
                     <h3 className="text-lg font-display font-bold text-gray-900">{title}</h3>
