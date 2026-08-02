@@ -1,5 +1,5 @@
 import { Link, useNavigate } from 'react-router-dom';
-import { BookOpen, LogOut, User, Menu, X, Home, Library, BookMarked, Sparkles, ClipboardList } from 'lucide-react';
+import { LogOut, User, Menu, X, Home, Library, BookMarked, Sparkles, ClipboardList } from 'lucide-react';
 import { useState } from 'react';
 import useAuthStore from '../../stores/authStore';
 
@@ -19,8 +19,12 @@ const Navbar = () => {
                 <div className="flex items-center justify-between h-16">
                     {/* Logo */}
                     <Link to="/" className="flex items-center gap-3 group">
-                        <div className="p-2 bg-white rounded-lg group-hover:scale-110 transition-transform duration-300">
-                            <BookOpen className="text-primary-700" size={28} />
+                        <div className="p-1.5 bg-white rounded-lg group-hover:scale-105 transition-transform duration-300">
+                            <img
+                                src="/logo.jpeg"
+                                alt="Crescent University"
+                                className="w-9 h-9 object-contain"
+                            />
                         </div>
                         <div className="hidden sm:block">
                             <h1 className="text-xl font-display font-bold text-white">

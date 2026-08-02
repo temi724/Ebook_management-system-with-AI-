@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { NavLink, Link, useNavigate } from 'react-router-dom';
 import {
-    BookOpen, Home, Library, BookMarked, Sparkles, ClipboardList,
+    Home, Library, BookMarked, Sparkles, ClipboardList,
     LogOut, Menu, X,
 } from 'lucide-react';
 import useAuthStore from '../../stores/authStore';
@@ -41,9 +41,11 @@ const Sidebar = () => {
                 onClick={() => setOpen(false)}
                 className="flex items-center gap-2.5 px-5 h-16 border-b border-gray-100 shrink-0"
             >
-                <div className="p-1.5 bg-primary-600 rounded-lg">
-                    <BookOpen className="text-white" size={20} />
-                </div>
+                <img
+                    src="/logo.jpeg"
+                    alt="Crescent University"
+                    className="w-8 h-8 object-contain shrink-0"
+                />
                 <div>
                     <h1 className="text-base font-display font-bold text-gray-900 leading-none">E-Library</h1>
                     <p className="text-[10px] text-gray-400 mt-0.5">Powered by AI</p>
@@ -87,9 +89,11 @@ const Sidebar = () => {
             {/* Mobile top bar */}
             <div className="lg:hidden fixed top-0 inset-x-0 h-14 bg-white border-b border-gray-200 flex items-center justify-between px-4 z-40">
                 <Link to="/dashboard" className="flex items-center gap-2">
-                    <div className="p-1.5 bg-primary-600 rounded-lg">
-                        <BookOpen className="text-white" size={18} />
-                    </div>
+                    <img
+                        src="/logo.jpeg"
+                        alt="Crescent University"
+                        className="w-7 h-7 object-contain shrink-0"
+                    />
                     <span className="font-display font-bold text-gray-900">E-Library</span>
                 </Link>
                 <button onClick={() => setOpen(true)} className="p-2 text-gray-600" aria-label="Open menu">

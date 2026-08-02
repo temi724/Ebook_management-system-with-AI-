@@ -23,13 +23,24 @@ logger = logging.getLogger(__name__)
 
 
 class RecommendationService:
-    """AI-powered book recommendation service using RAG with Ollama"""
+    """AI-powered book recommendation service using RAG over local embeddings"""
 
-    # Minimum cosine similarity for a book to be considered a relevant match.
-    # Vector search always returns the nearest books even for unrelated queries, so
-    # without a floor every query would surface the entire catalogue. With cosine
-    # scoring, relevant matches sit at ~0.45+ while unrelated books fall below ~0.25.
-    RELEVANCE_THRESHOLD = 0.35
+    # Vector search always returns the nearest books even for a totally unrelated query,
+    # so results need a relevance floor. One absolute cutoff is not enough on its own:
+    # conversational queries score much lower than keyword ones ("web development" tops
+    # out at 0.47, "learn how to build a website" at 0.31 for the same books), because
+    # filler words dilute the embedding. A floor high enough to keep junk out of short
+    # queries therefore returns nothing at all for natural-language ones.
+    #
+    # So two cutoffs are combined:
+    #   RELEVANCE_THRESHOLD    absolute floor — keeps unrelated queries empty. Measured
+    #                          top score for off-topic queries is ~0.07-0.22, so 0.25
+    #                          leaves headroom above the worst case.
+    #   RELATIVE_THRESHOLD     fraction of the best hit — trims the long tail on broad
+    #                          queries. Without it "literature" returns 9 books spanning
+    #                          4 unrelated categories instead of the 3 that belong.
+    RELEVANCE_THRESHOLD = 0.25
+    RELATIVE_THRESHOLD = 0.6
 
     def __init__(self):
         self.vector_store = None
@@ -122,20 +133,42 @@ class RecommendationService:
         try:
             if not self.vector_store:
                 self.initialize_vector_store(db)
-            
+
+            # The vector store stays None whenever the AI stack is unusable — missing
+            # dependencies, or an embeddings model that failed to load. Degrade to
+            # popularity ranking rather than returning nothing, which is what the
+            # module contract promises and what the personalized path already does.
+            if not self.vector_store:
+                logger.warning(
+                    "Vector store unavailable; serving popularity fallback for query: %r", query
+                )
+                fallback = self._get_popular_books(db, limit)
+                fallback.query_understood = query
+                return fallback
+
             # Search similar books (retrieve a few extra to allow for filtering).
             results = self.vector_store.similarity_search_with_score(
                 query, k=limit * 2
             )
 
-            # Extract book recommendations. Results are ordered best-match first, so once
-            # a book falls below the relevance threshold, none of the remaining ones qualify.
+            if not results:
+                return RecommendationResponse(
+                    recommendations=[], query_understood=query, total_results=0
+                )
+
+            # The relative cutoff is anchored to the best hit, so it has to be computed
+            # before filtering. Results are ordered best-match first.
+            top_similarity = float(1 - results[0][1])
+            cutoff = max(self.RELEVANCE_THRESHOLD, top_similarity * self.RELATIVE_THRESHOLD)
+
+            # Extract book recommendations. Because results are ordered, once a book falls
+            # below the cutoff none of the remaining ones qualify.
             recommendations = []
             seen_books = set()
 
             for doc, score in results:
                 similarity = float(1 - score)
-                if similarity < self.RELEVANCE_THRESHOLD:
+                if similarity < cutoff:
                     break
 
                 book_id = doc.metadata.get("book_id")
@@ -167,12 +200,20 @@ class RecommendationService:
             
         except Exception as e:
             logger.error(f"Error getting recommendations: {e}")
-            # Return empty recommendations on error
-            return RecommendationResponse(
-                recommendations=[],
-                query_understood=query,
-                total_results=0
-            )
+            # Search failed outright — still return something useful rather than an
+            # empty list. If even the fallback query fails the DB is unreachable, so
+            # an empty response is all that is left.
+            try:
+                fallback = self._get_popular_books(db, limit)
+                fallback.query_understood = query
+                return fallback
+            except Exception as fallback_error:
+                logger.error(f"Popularity fallback also failed: {fallback_error}")
+                return RecommendationResponse(
+                    recommendations=[],
+                    query_understood=query,
+                    total_results=0
+                )
     
     def get_personalized_recommendations(
         self,
@@ -217,7 +258,7 @@ class RecommendationService:
                 title=book.title,
                 author=book.author,
                 category=book.category or "Unknown",
-                similarity_score=book.rating / 5.0,
+                similarity_score=(book.rating or 0.0) / 5.0,
                 reason="Popular book in our library"
             )
             for book in books

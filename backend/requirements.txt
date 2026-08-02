@@ -18,7 +18,10 @@ python-dotenv==1.0.0
 langchain==0.1.0
 langchain-community==0.0.10
 chromadb==0.4.18
-sentence-transformers==2.2.2
+# 2.2.2 imports huggingface_hub.cached_download, removed in hub 0.26+, which breaks
+# the embeddings model at load time and silently degrades recommendations to
+# popularity ranking. 3.0+ works with the modern hub that transformers requires.
+sentence-transformers>=3.0
 ollama==0.1.6
 pypdf==3.17.1
 python-docx==1.1.0

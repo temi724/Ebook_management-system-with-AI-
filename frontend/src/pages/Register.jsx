@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Mail, Lock, User as UserIcon, BookOpen } from 'lucide-react';
+import { Mail, Lock, User as UserIcon } from 'lucide-react';
 import { toast } from 'react-toastify';
 import Input from '../components/common/Input';
 import Button from '../components/common/Button';
@@ -80,9 +80,11 @@ const Register = () => {
             <div className="w-full max-w-md">
                 {/* Header */}
                 <div className="text-center mb-8 animate-fade-in">
-                    <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-primary-500 to-accent-500 rounded-2xl mb-4">
-                        <BookOpen className="text-white" size={32} />
-                    </div>
+                    <img
+                        src="/logo.jpeg"
+                        alt="Crescent University"
+                        className="w-20 h-20 object-contain mx-auto mb-4"
+                    />
                     <h1 className="text-4xl font-display font-bold text-gradient mb-2">
                         Join E-Library
                     </h1>

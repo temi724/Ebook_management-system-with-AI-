@@ -16,9 +16,11 @@
 
 @layer components {
 
-  /* Card Components */
+  /* Card Components.
+     Deliberately flat: separation comes from the hairline border and the
+     off-white page background, not from a drop shadow. */
   .glass-card {
-    @apply bg-white rounded-xl border border-gray-200 transition-shadow duration-300;
+    @apply bg-white rounded-lg border border-gray-200/80 transition-colors duration-200;
   }
 
   .glass-card-light {
@@ -48,16 +50,17 @@
   }
 
   .input-field:focus {
-    @apply bg-white shadow-sm;
+    @apply bg-white;
   }
 
   /* Cards */
   .card {
-    @apply glass-card p-6;
+    @apply glass-card p-5;
   }
 
+  /* Hover feedback is a border tint rather than a lift, so cards stay flat. */
   .card-hover {
-    @apply card transform hover:-translate-y-1 cursor-pointer;
+    @apply card hover:border-primary-300 cursor-pointer;
   }
 
   /* Text Gradients */
