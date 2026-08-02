@@ -19,7 +19,10 @@ wheels/
 *.egg-info/
 .installed.cfg
 *.egg
-venv/
+# Matches venv311/ and any other suffixed virtualenv, which a bare "venv/"
+# rule does not — that gap is why venv311/bin was committed while its
+# site-packages was ignored, leaving a virtualenv skeleton with no packages.
+venv*/
 ENV/
 env/
 
@@ -51,6 +54,12 @@ uploads/
 *.jpg
 *.jpeg
 *.png
+
+# ...but the app's own branding is source, not an upload. Without these
+# exceptions the logo is missing from a fresh clone and every <img src="/logo.jpeg">
+# renders broken.
+!frontend/public/logo.jpeg
+!frontend/logo.jpeg
 
 # Node
 node_modules/
